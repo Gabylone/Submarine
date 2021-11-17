@@ -1,0 +1,187 @@
+fileFormatVersion: 2
+guid: 0ccd8279e85c6594093fd9b96f33c5e8
+timeCreated: 1486113756
+licenseType: Free
+ModelImporter:
+  serializedVersion: 19
+  fileIDToRecycleName:
+    100000: Armature
+    100002: base
+    100004: body
+    100006: //RootNode
+    100008: chest
+    100010: collar_l
+    100012: collar_r
+    100014: f1a_l
+    100016: f1a_r
+    100018: f1b_l
+    100020: f1b_r
+    100022: f1c_l
+    100024: f1c_r
+    100026: f2a_l
+    100028: f2a_r
+    100030: f2b_l
+    100032: f2b_r
+    100034: f2c_l
+    100036: f2c_r
+    100038: f3a_l
+    100040: f3a_r
+    100042: f3b_l
+    100044: f3b_r
+    100046: f3c_l
+    100048: f3c_r
+    100050: f4a_l
+    100052: f4a_r
+    100054: f4b_l
+    100056: f4b_r
+    100058: f4c_l
+    100060: f4c_r
+    100062: foot_l
+    100064: foot_r
+    100066: head
+    100068: lowerarm_l
+    100070: lowerarm_r
+    100072: lowerleg_l
+    100074: lowerleg_r
+    100076: neck
+    100078: palm_l
+    100080: palm_r
+    100082: pelvis
+    100084: root
+    100086: stomach
+    100088: ta_l
+    100090: ta_r
+    100092: tb_l
+    100094: tb_r
+    100096: tc_l
+    100098: tc_r
+    100100: thigh_l
+    100102: thigh_r
+    100104: toe_l
+    100106: toe_r
+    100108: upperarm_l
+    100110: upperarm_r
+    400000: Armature
+    400002: base
+    400004: body
+    400006: //RootNode
+    400008: chest
+    400010: collar_l
+    400012: collar_r
+    400014: f1a_l
+    400016: f1a_r
+    400018: f1b_l
+    400020: f1b_r
+    400022: f1c_l
+    400024: f1c_r
+    400026: f2a_l
+    400028: f2a_r
+    400030: f2b_l
+    400032: f2b_r
+    400034: f2c_l
+    400036: f2c_r
+    400038: f3a_l
+    400040: f3a_r
+    400042: f3b_l
+    400044: f3b_r
+    400046: f3c_l
+    400048: f3c_r
+    400050: f4a_l
+    400052: f4a_r
+    400054: f4b_l
+    400056: f4b_r
+    400058: f4c_l
+    400060: f4c_r
+    400062: foot_l
+    400064: foot_r
+    400066: head
+    400068: lowerarm_l
+    400070: lowerarm_r
+    400072: lowerleg_l
+    400074: lowerleg_r
+    400076: neck
+    400078: palm_l
+    400080: palm_r
+    400082: pelvis
+    400084: root
+    400086: stomach
+    400088: ta_l
+    400090: ta_r
+    400092: tb_l
+    400094: tb_r
+    400096: tc_l
+    400098: tc_r
+    400100: thigh_l
+    400102: thigh_r
+    400104: toe_l
+    400106: toe_r
+    400108: upperarm_l
+    400110: upperarm_r
+    4300000: body
+    7400000: Default Take
+    9500000: //RootNode
+    13700000: body
+  materials:
+    importMaterials: 1
+    materialName: 0
+    materialSearch: 1
+  animations:
+    legacyGenerateAnimations: 4
+    bakeSimulation: 0
+    resampleCurves: 1
+    optimizeGameObjects: 0
+    motionNodeName: 
+    animationImportErrors: 
+    animationImportWarnings: 
+    animationRetargetingWarnings: 
+    animationDoRetargetingWarnings: 0
+    animationCompression: 3
+    animationRotationError: 0.5
+    animationPositionError: 0.5
+    animationScaleError: 0.5
+    animationWrapMode: 0
+    extraExposedTransformPaths: []
+    clipAnimations: []
+    isReadable: 1
+  meshes:
+    lODScreenPercentages: []
+    globalScale: 0.2
+    meshCompression: 0
+    addColliders: 0
+    importBlendShapes: 1
+    swapUVChannels: 0
+    generateSecondaryUV: 0
+    useFileUnits: 1
+    optimizeMeshForGPU: 1
+    keepQuads: 0
+    weldVertices: 1
+    secondaryUVAngleDistortion: 8
+    secondaryUVAreaDistortion: 15.000001
+    secondaryUVHardAngle: 88
+    secondaryUVPackMargin: 4
+    useFileScale: 1
+  tangentSpace:
+    normalSmoothAngle: 60
+    normalImportMode: 0
+    tangentImportMode: 3
+  importAnimation: 0
+  copyAvatar: 0
+  humanDescription:
+    human: []
+    skeleton: []
+    armTwist: 0.5
+    foreArmTwist: 0.5
+    upperLegTwist: 0.5
+    legTwist: 0.5
+    armStretch: 0.05
+    legStretch: 0.05
+    feetSpacing: 0
+    rootMotionBoneName: root
+    hasTranslationDoF: 0
+  lastHumanDescriptionAvatarSource: {instanceID: 0}
+  animationType: 2
+  humanoidOversampling: 1
+  additionalBone: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
