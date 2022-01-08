@@ -9,9 +9,18 @@ public class Interactable : MonoBehaviour
     public bool interacting = false;
 
     public IKTrigger ikTrigger;
+    private Interactable_Trigger Interactable_Trigger;
 
     public Transform player_anchor;
 
+    public bool disableMovements = true;
+
+    private float timer = 0f;
+
+    public virtual void Start()
+    {
+        Interactable_Trigger = GetComponentInChildren<Interactable_Trigger>();
+    }
 
     public virtual void Update()
     {
@@ -31,19 +40,36 @@ public class Interactable : MonoBehaviour
 
     public virtual void Interact_Start()
     {
+        Interactable_Trigger.Disable();
+
         interacting = true;
 
-        Player.Instance.GetTransform.DOMove(player_anchor.position, 0.5f);
-        Player.Instance.Body.DORotateQuaternion(player_anchor.rotation, 0.5f);
+        DisableOutline();
+
+        timer = 0f;
+
+        if ( player_anchor != null)
+        {
+            Player.Instance.GetTransform.DOMove(player_anchor.position, 0.5f);
+            Player.Instance.Body.DORotateQuaternion(player_anchor.rotation, 0.5f);
+        }
 
         CheckIKs();
 
-        Player.Instance.DisableMovement();
+        if ( disableMovements)
+        {
+            Player.Instance.DisableMovement();
+        }
     }
 
     public virtual void Interact_Update()
     {
+        if ( timer >=  0.2f && Input.GetKeyDown(KeyCode.I))
+        {
+            Interact_Exit();
+        }
 
+        timer += Time.deltaTime;
     }
 
     public virtual void Interact_LateUpdate()
@@ -54,25 +80,18 @@ public class Interactable : MonoBehaviour
     public virtual void Interact_Exit()
     {
         interacting = false;
+        Interactable_Trigger.Enable();
     }
 
-    public void Enter()
+    public void EnableOutline()
     {
         foreach (var item in GetComponentsInChildren<Transform>())
         {
             item.gameObject.layer = 3;
         }
-
-        if ( ikTrigger != null)
-        {
-            if ( ikTrigger.head_Target != null)
-            {
-                IKManager.Instance.SetTarget(IKManager.IKParam.Type.Head, ikTrigger.head_Target);
-            }
-        }
     }
 
-    public void Exit()
+    public void DisableOutline()
     {
         foreach (var item in GetComponentsInChildren<Transform>())
         {

@@ -25,6 +25,8 @@ public class Lever : Interactable
         base.Interact_Start();
 
         Player.Instance.DisableMovement();
+
+        IKManager.Instance.SetTarget(IKManager.IKParam.Type.Body, playerBody_Target);
     }
 
     public override void Interact_Update()
@@ -32,8 +34,6 @@ public class Lever : Interactable
         base.Interact_Update();
 
         UpdateInput();
-
-        IKManager.Instance.SetTarget(IKManager.IKParam.Type.Body, playerBody_Target);
     }
 
     public override void Interact_LateUpdate()
@@ -65,6 +65,10 @@ public class Lever : Interactable
         {
             _targetTransform.localRotation = Quaternion.Lerp(_targetTransform.localRotation, rot_B, rotateSpeed  * Time.deltaTime);
         }
+
+        /*Vector3 handPos = IKManager.Instance._animator.GetBoneTransform(HumanBodyBones.RightHand).position;
+        Vector3 dir = handPos - test_targetTransform.position;
+        test_targetTransform.up = Vector3.Lerp(test_targetTransform.up, dir , testRotSpeed * Time.deltaTime);*/
     }
 
 
@@ -75,7 +79,6 @@ public class Lever : Interactable
         Player.Instance.EnableMovement();
 
         IKManager.Instance.StopAll();
-
     }
 
 

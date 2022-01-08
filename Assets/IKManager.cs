@@ -37,7 +37,10 @@ public class IKManager : MonoBehaviour
         public Type type;
         public bool active = false;
         public float weight = 0f;
+        public float weight_speed = 1f;
         public float transition_speed = 2f;
+        public float transition_acceleration = 1f;
+        public float maxTransitionSpeed = 50f;
         public Transform _transform;
         public Transform target;
         [HideInInspector]
@@ -65,6 +68,15 @@ public class IKManager : MonoBehaviour
 
         public void UpdateWeight()
         {
+            if (active)
+            {
+                weight = Mathf.Lerp(weight, 1f, weight_speed * Time.deltaTime);
+            }
+            else
+            {
+                weight = Mathf.Lerp(weight, 0f, weight_speed * Time.deltaTime * 3f);
+            }
+
             switch (type)
             {
                 case IKParam.Type.LeftFoot:
@@ -90,6 +102,8 @@ public class IKManager : MonoBehaviour
             {
                 transition.position = Vector3.Lerp(transition.position, target.position, transition_speed * Time.deltaTime); ;
                 transition.rotation = Quaternion.Lerp(transition.rotation, target.rotation, transition_speed * Time.deltaTime);
+
+                transition_speed = Mathf.Lerp(transition_speed, maxTransitionSpeed, transition_acceleration * Time.deltaTime );
             }
             
 
@@ -163,10 +177,17 @@ public class IKManager : MonoBehaviour
         }
     }
 
+    private void Update()
+    {
+        GetIKParam(IKParam.Type.Body).UpdateTarget();
+        GetIKParam(IKParam.Type.Body).UpdateWeight();
+    }
+
     public void SetTarget(IKParam.Type type, Transform target)
     {
         GetIKParam(type).target = target;
         GetIKParam(type).active = true;
+        GetIKParam(type).transition_speed = 1f;
     }
 
     public void StopAll()
@@ -192,6 +213,7 @@ public class IKManager : MonoBehaviour
     public void Stop(IKParam.Type type)
     {
         GetIKParam(type).active = false;
+        GetIKParam(type).transition_speed = 1f;
     }
 
     // tests
@@ -199,24 +221,13 @@ public class IKManager : MonoBehaviour
     {
         _animator.SetLookAtWeight(GetIKParam(IKParam.Type.Head).weight);
 
-        for (int index = 0; index < ikParams.Length; index++)
+        for (int index = 0; index < ikParams.Length-1; index++)
         {
             IKParam.Type type = (IKParam.Type)index;
             IKParam ikParam = GetIKParam(type);
 
-            if (ikParam.active)
-            {
-                ikParam.weight = Mathf.Lerp(ikParam.weight, 1f, weight_Speed * Time.deltaTime);
-            }
-            else
-            {
-                ikParam.weight = Mathf.Lerp(ikParam.weight, 0f, weight_Speed * Time.deltaTime * 3f);
-            }
-
             ikParam.UpdateTarget();
             ikParam.UpdateWeight();
-
-
         }
     }
 

@@ -8,7 +8,7 @@ public class Interactable_Trigger : MonoBehaviour
 
     public Interactable linkedInteractable;
 
-    BoxCollider BoxCollider;
+    private BoxCollider BoxCollider;
 
     private void Start()
     {
@@ -19,33 +19,43 @@ public class Interactable_Trigger : MonoBehaviour
     {
         if ( inside && Input.GetKeyDown(KeyCode.I))
         {
-            if (linkedInteractable.interacting)
+            if (!linkedInteractable.interacting)
             {
-                BoxCollider.enabled = true;
-                linkedInteractable.Interact_Exit();
-            }
-            else
-            {
-                BoxCollider.enabled = false;
-                linkedInteractable.Exit();
                 linkedInteractable.Interact_Start();
             }
         }
     }
 
-    private void OnTriggerEnter(Collider other)
+    public void Enable()
     {
-        linkedInteractable.Enter();
+        linkedInteractable.EnableOutline();
+
+        /*if (ikTrigger != null)
+        {
+            if (ikTrigger.head_Target != null)
+            {
+                IKManager.Instance.SetTarget(IKManager.IKParam.Type.Head, ikTrigger.head_Target);
+            }
+        }*/
 
         inside = true;
     }
 
-    private void OnTriggerExit(Collider other)
+    public void Disable()
     {
-        linkedInteractable.Exit();
+        linkedInteractable.DisableOutline();
 
         IKManager.Instance.Stop(IKManager.IKParam.Type.Head);
-
         inside = false;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        Enable();
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        Disable();
     }
 }

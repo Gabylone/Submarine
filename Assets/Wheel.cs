@@ -14,19 +14,13 @@ public class Wheel : Interactable
 
     private float angle = 0f;
     public float angleToStop = 0f;
-    private float timer = 0f;
+    private float wheelTimer = 0f;
     public float timeBetweenTurns = 1f;
 
     bool turning = false;
 
     public Transform _targetTransform;
     public float rotateSpeed = 5f;
-
-    // Start is called before the first frame update
-    void Start()
-    {
-
-    }
 
     public override void Interact_Start()
     {
@@ -85,15 +79,15 @@ public class Wheel : Interactable
                     ChangeAnchor(true);
                 }
 
-                timer = 0f;
+                wheelTimer = 0f;
                 turning = false;
             }
         }
         else
         {
-            timer += Time.deltaTime;
+            wheelTimer += Time.deltaTime;
 
-            if (timer >= timeBetweenTurns)
+            if (wheelTimer >= timeBetweenTurns)
             {
                 angle = 0f;
                 turning = true;
@@ -142,9 +136,6 @@ public class Wheel : Interactable
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(player_anchor.position, 0.3f);
-
         Gizmos.color = Color.red;
         foreach (var anchor in anchors)
         {
