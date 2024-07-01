@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class DisplayUI_Wheel : MonoBehaviour
-{
+public class DisplayUI_Wheel : MonoBehaviour {
     public Submarine.Value value;
 
     public float maxAngle = 90f;
@@ -12,14 +9,12 @@ public class DisplayUI_Wheel : MonoBehaviour
     public float lerpSpeed = 1.0f;
 
     // Start is called before the first frame update
-    void Start()
-    {
-        
+    void Start() {
+
     }
 
     // Update is called once per frame
-    void Update()
-    {
+    void Update() {
         float lerp = Submarine.Instance.GetLerp(value);
 
         Vector3 eulerAngles = Vector3.forward * lerp * maxAngle;

@@ -1,14 +1,8 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Timeline;
 
-public class Submarine : MonoBehaviour
-{
+public class Submarine : MonoBehaviour {
     public static Submarine Instance;
-    public enum Value
-    {
+    public enum Value {
         Speed,
         Turn,
         Dive,
@@ -73,8 +67,7 @@ public class Submarine : MonoBehaviour
     public OnReset onResetMecanisms;
 
     [System.Serializable]
-    public class Sound
-    {
+    public class Sound {
         public Value value;
         public float minPitch = 0.8f;
         public float maxPitch = 1f;
@@ -93,91 +86,71 @@ public class Submarine : MonoBehaviour
 
     public int proximityIndex = 0;
 
-    private void Awake()
-    {
+    private void Awake() {
         Instance = this;
     }
 
-    private void Start()
-    {
+    private void Start() {
         stoppAll_Button.onTrigger += HandleOnTriggerStopAllButton;
     }
 
-    private void Update()
-    {
+    private void Update() {
         UpdateMovement();
 
     }
 
-    private void HandleOnTriggerSpeedBreaks()
-    {
-        
+    private void HandleOnTriggerSpeedBreaks() {
+
     }
 
-    private void HandleOnTriggerTurnBreaks()
-    {
-        
+    private void HandleOnTriggerTurnBreaks() {
+
     }
 
-    private void HandleOnTriggerStopAllButton()
-    {
+    private void HandleOnTriggerStopAllButton() {
         Crash();
     }
 
-    public float GetLerp(Value value)
-    {
+    public float GetLerp(Value value) {
         return GetLerp(value, false);
     }
-    public float GetLerp(Value value, bool sound)
-    {
+    public float GetLerp(Value value, bool sound) {
         float lerp = 0f;
 
-        switch (value)
-        {
+        switch (value) {
             case Value.Speed:
                 // 0 - 1
-                if ( sound)
-                {
+                if (sound) {
                     float l = moveSpeed / maxMoveSpeed;
                     lerp = moveSpeed > 0 ? l : -l;
                 }
                 // -1 - 1
-                else
-                {
+                else {
                     lerp = moveSpeed / maxMoveSpeed;
                 }
                 break;
             case Value.Turn:
 
-                if (sound)
-                {
+                if (sound) {
                     float l = turnSpeed / maxTurnSpeed;
                     lerp = turnSpeed > 0 ? l : -l;
-                }
-                else
-                {
+                } else {
                     lerp = turnSpeed / maxTurnSpeed;
                 }
                 break;
             case Value.Dive:
-                if (sound)
-                {
+                if (sound) {
                     float l = diveSpeed / maxDiveSpeed;
                     lerp = diveSpeed > 0 ? l : -l;
-                }
-                else
-                {
+                } else {
                     lerp = diveSpeed / maxDiveSpeed;
                 }
                 break;
             case Value.ForwardTilt:
-                if (sound)
-                {
+                if (sound) {
                     float l = currentTiltSpeed / maxTiltSpeed;
                     lerp = currentTiltSpeed > 0 ? l : -l;
-                }
-                else
-                {
+                } else {
                     lerp = currentTiltSpeed / maxTiltSpeed;
                 }
                 break;
@@ -193,10 +166,8 @@ public class Submarine : MonoBehaviour
 
     public Vector3 eulerAngles_Test;
 
-    private void UpdateMovement()
-    {
-       if (!crashing)
-        {
+    private void UpdateMovement() {
+        if (!crashing) {
             // move
             moveSpeed = (speedWheel.GetValue() + speedLever1.GetValue() + speedLever2.GetValue()) * maxMoveSpeed;
             /*Vector3 dir = GetTransform.forward;
@@ -222,42 +193,34 @@ public class Submarine : MonoBehaviour
             GetTransform.Rotate(Vector3.right * currentTiltSpeed * Time.deltaTime);
             GetTransform.Rotate(Vector3.up * turnSpeed * Time.deltaTime);
 
-        }
-        else
-        {
+        } else {
             CrashUpdate();
         }
 
         UpdateSounds();
     }
 
-    void CrashUpdate()
-    {
+    void CrashUpdate() {
         GetTransform.Translate(Vector3.forward * crash_Speed * Time.deltaTime);
     }
 
-    void UpdateSounds()
-    {
-        foreach (var item in sounds)
-        {
+    void UpdateSounds() {
+        foreach (var item in sounds) {
             float t = item.curve.Evaluate(GetLerp(item.value, true));
 
-            foreach (var source in item.sources)
-            {
+            foreach (var source in item.sources) {
 
                 source.volume = Mathf.Lerp(item.minVolume, item.maxVolume, t);
                 source.pitch = Mathf.Lerp(item.minPitch, item.maxPitch, t);
             }
-            
+
         }
     }
 
-    public void Crash()
-    {
+    public void Crash() {
         Debug.Log("crash");
 
-        if (onCrash != null)
-        {
+        if (onCrash != null) {
             onCrash();
         }
 
@@ -270,28 +233,22 @@ public class Submarine : MonoBehaviour
         Invoke("EndCrash", crash_duration);
     }
 
-    public void ResetMecanisms()
-    {
-        if ( onResetMecanisms != null)
-        {
+    public void ResetMecanisms() {
+        if (onResetMecanisms != null) {
             onResetMecanisms();
         }
     }
 
-    public void EndCrash()
-    {
+    public void EndCrash() {
         crashing = false;
         source_Crash.Stop();
     }
 
-    public void ApproachCollision(int id)
-    {
+    public void ApproachCollision(int id) {
         proximityIndex = id;
 
-        if ( id == 0)
-        {
-            if (onApproachCollision != null)
-            {
+        if (id == 0) {
+            if (onApproachCollision != null) {
                 onApproachCollision();
             }
         }
@@ -302,35 +259,28 @@ public class Submarine : MonoBehaviour
 
     }
 
-    public void ExitCollision(int id)
-    {
+    public void ExitCollision(int id) {
         proximityIndex = id;
 
         sources_Proximity[id].Stop();
 
-        if (id == 0)
-        {
-            foreach (var item in sources_Proximity)
-            {
+        if (id == 0) {
+            foreach (var item in sources_Proximity) {
                 item.Stop();
             }
 
-            if (onExitCollision != null)
-            {
+            if (onExitCollision != null) {
                 onExitCollision();
             }
         }
 
-        
+
 
     }
 
-    public Transform GetTransform
-    {
-        get
-        {
-            if (_transform == null)
-            {
+    public Transform GetTransform {
+        get {
+            if (_transform == null) {
                 _transform = transform;
             }
 

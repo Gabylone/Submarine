@@ -255,16 +255,9 @@ MonoBehaviour:
   interacting: 0
   selected: 0
   disableMovements: 1
-  ikTrigger:
-    leftFoot_Target: {fileID: 2292297020033830494}
-    rightFoot_Target: {fileID: 2292297020148155708}
-    leftHand_Target: {fileID: 2292297020063196156}
-    rightHand_Target: {fileID: 2292297020254263475}
-    head_Target: {fileID: 2292297020402004709}
   Interactable_Trigger: {fileID: 0}
   player_anchor: {fileID: 2292297020904570877}
   outlineGroup: {fileID: 0}
-  outlineRenderers: []
   contextuelCam: {fileID: 0}
   lerpBody: 1
   lerp_MoveSpeed: 2
@@ -273,6 +266,11 @@ MonoBehaviour:
   _targetTransform: {fileID: 2292297020161445749}
   value: 0
   valueMultiplier: 0.1
+  anchors:
+  - {fileID: 2292297020033830494}
+  - {fileID: 2292297020148155708}
+  - {fileID: 2292297020063196156}
+  - {fileID: 2292297020254263475}
   lerp: 0
   playerBody_Target: {fileID: 9107713862699673779}
   playerBody_A: {fileID: 2292297020717929785}
@@ -291,7 +289,6 @@ MonoBehaviour:
   sound_HandleClip: {fileID: 8300000, guid: 3933276946e994c49b7231340628a208, type: 3}
   source_Effect: {fileID: 5964053453008345872}
   source_Loop: {fileID: 3451573881020530533}
-  stopSource: {fileID: 4669854267586036173}
   sound_Buffer: 0.9
   sound_StopSoundPlayed: 0
   sound_StartSoundPlayed: 0

@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class SubmarineCollider : MonoBehaviour
-{
+public class SubmarineCollider : MonoBehaviour {
     public bool proximity = false;
 
     bool touchingWall = false;
@@ -17,20 +14,16 @@ public class SubmarineCollider : MonoBehaviour
 
     public Collider collider;
 
-    private void Update()
-    {
-        if (proximity)
-        {
+    private void Update() {
+        if (proximity) {
             RaycastHit hit;
 
         }
 
-        if (touchingWall)
-        {
+        if (touchingWall) {
             timer -= Time.deltaTime;
 
-            if (timer < 0f)
-            {
+            if (timer < 0f) {
                 touchingWall = false;
                 Submarine.Instance.ExitCollision(id);
             }
@@ -39,31 +32,24 @@ public class SubmarineCollider : MonoBehaviour
 
 
 
-    private void OnTriggerStay(Collider other)
-    {
-        if (other.tag == "Ocean Walls")
-        {
-            if (proximity)
-            {
-                if (!touchingWall)
-                {
+    private void OnTriggerStay(Collider other) {
+        if (other.tag == "Ocean Walls") {
+            if (proximity) {
+                if (!touchingWall) {
                     Submarine.Instance.ApproachCollision(id);
                 }
 
                 touchingWall = true;
                 timer = 0.5f;
 
-            }
-            else
-            {
+            } else {
                 Submarine.Instance.Crash();
             }
         }
     }
 
-    
-    private void OnDrawGizmos()
-    {
+
+    private void OnDrawGizmos() {
         /*if (proximity)
         {
             RaycastHit hit;

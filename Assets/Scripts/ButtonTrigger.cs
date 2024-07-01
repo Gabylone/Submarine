@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class ButtonTrigger : Interactable
-{
+public class ButtonTrigger : Interactable {
     public Transform _targetTransform;
 
     public float disToTrigger = .5f;
@@ -17,35 +14,29 @@ public class ButtonTrigger : Interactable
     public delegate void OnTrigger();
     public OnTrigger onTrigger;
 
-    public override void Start()
-    {
+    public override void Start() {
         base.Start();
     }
 
-    public override void Interact_Start()
-    {
+    public override void Interact_Start() {
         base.Interact_Start();
 
         pressed = false;
     }
 
-    public override void Interact_Update()
-    {
+    public override void Interact_Update() {
         base.Interact_Update();
 
-        if (!pressed)
-        {
+        if (!pressed) {
             float disToLeftHand = Vector3.Distance(IKManager.Instance._animator.GetBoneTransform(HumanBodyBones.RightHand).position, _targetTransform.position);
 
-            if (disToLeftHand < disToTrigger)
-            {
+            if (disToLeftHand < disToTrigger) {
                 Trigger();
             }
         }
     }
 
-    void Trigger()
-    {
+    void Trigger() {
         pressed = true;
 
         //door.Switch();
@@ -54,33 +45,26 @@ public class ButtonTrigger : Interactable
 
         Tween.Bounce(_targetTransform);
 
-        if ( onTrigger != null)
-        {
+        if (onTrigger != null) {
             onTrigger();
         }
     }
 
-    public override void Interact_Exit()
-    {
+    public override void Interact_Exit() {
         base.Interact_Exit();
 
         IKManager.Instance.StopAll();
     }
 
-    public override void Update()
-    {
+    public override void Update() {
         base.Update();
     }
 
-    private void OnDrawGizmos()
-    {
+    private void OnDrawGizmos() {
 
-        if (pressed)
-        {
+        if (pressed) {
             Gizmos.color = Color.green;
-        }
-        else
-        {
+        } else {
             Gizmos.color = Color.blue;
         }
 

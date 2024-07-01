@@ -47,25 +47,22 @@ public class EdgeDetect : MonoBehaviour {
 
     public bool test = false;
 
-    private void Start()
-    {
-        Invoke("StartDelay", 1f);   
+    private void Start() {
+        Invoke("StartDelay", 1f);
     }
 
-    void StartDelay()
-    {
+    void StartDelay() {
         test = true;
     }
 
     void LateUpdate() {
 
-        if (test)
-        {
+        if (test) {
             normalsSensitivity = Mathf.MoveTowards(normalsSensitivity, 1.5f, Time.deltaTime);
         }
 
         if (cam == null && width != -1) {
-            
+
             cam = targetCam.GetComponent<Camera>();
 
             depthTexture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);

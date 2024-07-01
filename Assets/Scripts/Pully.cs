@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class Pully : Interactable
-{
+public class Pully : Interactable {
     public Transform _targetTransform;
 
     public float pull_speed = 2f;
@@ -25,17 +22,18 @@ public class Pully : Interactable
     public delegate void OnTrigger();
     public OnTrigger onTrigger;
 
-    public override void Interact_Start()
-    {
+    public override void Interact_Start() {
         base.Interact_Start();
+
+        IKManager.Instance.SetTarget(IKParam.Type.LeftHand, ik_target);
+        IKManager.Instance.SetTarget(IKParam.Type.RightHand, ik_target);
 
         caught = false;
 
-        Player.Instance.lockBodyRot = true;
+        Player.Instance.LockBodyRot(true);
     }
 
-    public override void Update()
-    {
+    public override void Update() {
         base.Update();
 
         float dis = Vector3.Distance(_targetTransform.position, cable_transform.position);
@@ -43,14 +41,12 @@ public class Pully : Interactable
         Vector3 dir = _targetTransform.position - cable_transform.position;
         cable_transform.up = -dir.normalized;
 
-        if (!interacting)
-        {
-            _targetTransform.position = Vector3.Lerp( _targetTransform.position , cable_transform.position , speedToBase * Time.deltaTime );
+        if (!interacting) {
+            _targetTransform.position = Vector3.Lerp(_targetTransform.position, cable_transform.position, speedToBase * Time.deltaTime);
         }
     }
 
-    public override void Interact_Update()
-    {
+    public override void Interact_Update() {
         base.Interact_Update();
 
         Vector3 handPos = IKManager.Instance._animator.GetBoneTransform(HumanBodyBones.RightHand).position;
@@ -62,21 +58,16 @@ public class Pully : Interactable
         Player.Instance.Body.forward = dir;
         //Player.Instance.Body.LookAt(cable_transform, Submarine.Instance.GetTransform.up);
 
-        if (caught)
-        {
-            _targetTransform.position = Vector3.Lerp( _targetTransform.position , handPos , speedToHand * Time.deltaTime );
+        if (caught) {
+            _targetTransform.position = Vector3.Lerp(_targetTransform.position, handPos, speedToHand * Time.deltaTime);
 
             float distanceToBase = Vector3.Distance(_targetTransform.position, cable_transform.position);
 
-            if (distanceToBase >= distanceToTrigger)
-            {
+            if (distanceToBase >= distanceToTrigger) {
                 Trigger();
             }
-        }
-        else
-        {
-            if (distanceToHand <= distanceToCatch)
-            {
+        } else {
+            if (distanceToHand <= distanceToCatch) {
                 caught = true;
 
                 ik_target.position = IKManager.Instance._animator.GetBoneTransform(HumanBodyBones.RightHand).position;
@@ -84,29 +75,25 @@ public class Pully : Interactable
                 ik_target.parent = Player.Instance.Body;
             }
 
-            if ( distanceToHand >= distanceToLeave)
-            {
+            if (distanceToHand >= distanceToLeave) {
                 Interact_Exit();
             }
         }
     }
 
-    void Trigger()
-    {
+    void Trigger() {
         Interact_Exit();
 
-        if ( onTrigger != null)
-        {
+        if (onTrigger != null) {
             onTrigger();
         }
     }
 
 
-    public override void Interact_Exit()
-    {
+    public override void Interact_Exit() {
         base.Interact_Exit();
 
-        Player.Instance.lockBodyRot = false;
+        Player.Instance.LockBodyRot(false);
 
         IKManager.Instance.StopAll();
 

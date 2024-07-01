@@ -1,11 +1,8 @@
- using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 using DG.Tweening;
 
-public class Door : MonoBehaviour
-{
+public class Door : MonoBehaviour {
     private Vector3 initPos;
 
     public Vector3 targetPos;
@@ -24,21 +21,17 @@ public class Door : MonoBehaviour
     public ButtonTrigger buttonTrigger1;
     public ButtonTrigger buttonTrigger2;
 
-    private void Start()
-    {
+    private void Start() {
         initPos = transform.localPosition;
 
         buttonTrigger1.onTrigger += Switch;
         buttonTrigger2.onTrigger += Switch;
     }
 
-    private void Update()
-    {
-        if (opened)
-        {
+    private void Update() {
+        if (opened) {
 
-            if (timer >= duration)
-            {
+            if (timer >= duration) {
                 Switch();
             }
 
@@ -46,30 +39,24 @@ public class Door : MonoBehaviour
         }
     }
 
-    public void Switch()
-    {
+    public void Switch() {
         timer = 0f;
 
         opened = !opened;
 
 
-        if (opened)
-        {
+        if (opened) {
             transform.DOLocalMove(initPos + targetPos, move_duration);
-        }
-        else
-        {
+        } else {
             transform.DOLocalMove(initPos, move_duration);
         }
 
-        if (onSwitch != null)
-        {
+        if (onSwitch != null) {
             onSwitch();
         }
     }
 
-    private void OnDrawGizmos()
-    {
+    private void OnDrawGizmos() {
         Gizmos.color = Color.white;
 
         Gizmos.DrawWireCube(transform.position, Vector3.one);

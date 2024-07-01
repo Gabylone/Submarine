@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class WheelFeedback : MonoBehaviour
-{
+public class WheelFeedback : MonoBehaviour {
     Wheel wheel;
 
     public Transform localAnchor;
@@ -17,28 +14,24 @@ public class WheelFeedback : MonoBehaviour
 
     public float lerpSpeed = 1f;
 
-    private void Start()
-    {
+    private void Start() {
         wheel = GetComponentInParent<Wheel>();
 
-        if (!global)
-        {
+        if (!global) {
             globalAnchor.gameObject.SetActive(false);
         }
 
         QuickUpdate();
     }
 
-    private void Update()
-    {
+    private void Update() {
         float localValue = wheel.GetValue() / wheel.valueMultiplier;
         Vector3 localAngles = -Vector3.forward * localValue * maxAngle;
 
         Quaternion localRot = Quaternion.Euler(initAngles + localAngles);
         localAnchor.localRotation = Quaternion.Lerp(localAnchor.localRotation, localRot, lerpSpeed * Time.deltaTime);
 
-        if (global)
-        {
+        if (global) {
             float globalValue = Submarine.Instance.GetLerp(value);
             Vector3 globalAngles = -Vector3.forward * globalValue * maxAngle;
 
@@ -47,14 +40,12 @@ public class WheelFeedback : MonoBehaviour
         }
     }
 
-    void QuickUpdate()
-    {
+    void QuickUpdate() {
         float localValue = wheel.GetValue() / wheel.valueMultiplier;
         Vector3 localAngles = -Vector3.forward * localValue * maxAngle;
         localAnchor.localEulerAngles = initAngles + localAngles;
 
-        if (global)
-        {
+        if (global) {
             float globalValue = Submarine.Instance.GetLerp(value);
             Vector3 globalAngles = -Vector3.forward * globalValue * maxAngle;
             globalAnchor.localEulerAngles = initAngles + globalAngles;

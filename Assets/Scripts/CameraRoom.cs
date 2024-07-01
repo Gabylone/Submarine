@@ -1,11 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-using DG.Tweening;
-
-public class CameraRoom : MonoBehaviour
-{
+public class CameraRoom : MonoBehaviour {
     public static CameraRoom previous;
     public static CameraRoom current;
 
@@ -33,27 +28,19 @@ public class CameraRoom : MonoBehaviour
     public Transform rotateAroundPoint_Center;
     public float rotateAroundPoint_Y = 0f;
 
-    private void Start()
-    {
-        if (triggerAtStart)
-        {
+    private void Start() {
+        if (triggerAtStart) {
             Trigger(true);
         }
     }
-
-
-
-    public void Exit()
-    {
+    public void Exit() {
         active = false;
     }
 
-    public void Trigger(bool cut)
-    {
+    public void Trigger(bool cut) {
         previous = current;
 
-        if (previous != null)
-        {
+        if (previous != null) {
             previous.Exit();
         }
 
@@ -63,27 +50,20 @@ public class CameraRoom : MonoBehaviour
 
         active = true;
 
-        if (cut)
-        {
+        if (cut) {
             CameraBehavior.Instance.GetTransform.position = target.position;
-            if (followPlayer_Active)
-            {
+            if (followPlayer_Active) {
 
-            }
-            else
-            {
+            } else {
                 CameraBehavior.Instance.GetTransform.rotation = CameraBehavior.Instance.GetRotation();
             }
-        }
-        else
-        {
+        } else {
             //CameraBehavior.Instance.GetTransform.DOMove(target.position, transitionSpeed);
         }
 
         //zoom
         CameraBehavior.Instance.zoom = zoom_Active;
-        if (zoom_Active)
-        {
+        if (zoom_Active) {
             CameraBehavior.Instance.zoom_Distance = zoom_Distance;
         }
 
@@ -92,26 +72,18 @@ public class CameraRoom : MonoBehaviour
 
         CameraBehavior.Instance.lookAtPoint_Active = followPlayer_Active || lookAtPoint_Active;
 
-        if (followPlayer_Active || lookAtPoint_Active)
-        {
-            if (followPlayer_Active)
-            {
+        if (followPlayer_Active || lookAtPoint_Active) {
+            if (followPlayer_Active) {
                 CameraBehavior.Instance.lookAtPoint_Target = CameraBehavior.Instance.followPlayer_Target;
-            }
-            else
-            {
+            } else {
                 CameraBehavior.Instance.lookAtPoint_Target = lookAtPoint_Target;
             }
         }
 
-        if (cut)
-        {
-            if (followPlayer_Active || lookAtPoint_Active)
-            {
+        if (cut) {
+            if (followPlayer_Active || lookAtPoint_Active) {
                 CameraBehavior.Instance.GetTransform.rotation = CameraBehavior.Instance.GetRotation();
-            }
-            else
-            {
+            } else {
                 CameraBehavior.Instance.GetTransform.rotation = target.rotation;
             }
         }
@@ -119,8 +91,7 @@ public class CameraRoom : MonoBehaviour
 
     }
 
-    public void TestCamera()
-    {
+    public void TestCamera() {
         Transform cameraTransform = GameObject.FindObjectOfType<CameraBehavior>().transform;
 
         cameraTransform.position = target.position;
@@ -131,10 +102,8 @@ public class CameraRoom : MonoBehaviour
         cameraTransform.rotation = target.rotation;
     }
 
-    private void OnDrawGizmos()
-    {
-        if (target == null)
-        {
+    private void OnDrawGizmos() {
+        if (target == null) {
             Gizmos.color = Color.red;
             Gizmos.DrawSphere(transform.position, 0.5f);
             return;
@@ -142,15 +111,13 @@ public class CameraRoom : MonoBehaviour
 
         Gizmos.color = color;
 
-        foreach (var item in GetComponentsInChildren<CameraTrigger>())
-        {
+        foreach (var item in GetComponentsInChildren<CameraTrigger>()) {
             Gizmos.DrawLine(item.transform.position, target.position);
         }
 
         Gizmos.DrawRay(target.position, target.forward * 0.75f);
 
-        if (zoom_Active)
-        {
+        if (zoom_Active) {
             Vector3 dir = target.TransformDirection(zoom_Direction);
             Gizmos.DrawRay(target.position, dir * zoom_Distance);
         }
@@ -159,8 +126,7 @@ public class CameraRoom : MonoBehaviour
 
         Gizmos.DrawCube(Vector3.zero, new Vector3(0.5f, 0.3f, 0.2f));
 
-        foreach (var item in GetComponentsInChildren<CameraTrigger>())
-        {
+        foreach (var item in GetComponentsInChildren<CameraTrigger>()) {
             Gizmos.matrix = item.transform.localToWorldMatrix;
             Gizmos.DrawCube(Vector3.zero, Vector3.one);
         }

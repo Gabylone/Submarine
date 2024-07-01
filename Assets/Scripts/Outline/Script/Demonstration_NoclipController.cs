@@ -1,13 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Demonstration_NoclipController : MonoBehaviour {
 
     public float movSpeed = 20;
     public float lookSpeed = 90;
 
-	void Update () {
+    void Update() {
 
         if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began) {
             int scene = Mathf.CeilToInt(Input.GetTouch(0).position.x * 3 / Screen.width);
@@ -40,7 +38,7 @@ public class Demonstration_NoclipController : MonoBehaviour {
         transform.Translate(Vector3.right * Input.GetAxisRaw("Horizontal") * Time.deltaTime * movSpeed);
         transform.Translate(Vector3.forward * Input.GetAxisRaw("Vertical") * Time.deltaTime * movSpeed);
 
-        transform.Translate(Vector3.up * 
+        transform.Translate(Vector3.up *
             (
                 (Input.GetButton("Fire1") ? movSpeed : 0) -
                 (Input.GetButton("Fire2") ? movSpeed : 0)

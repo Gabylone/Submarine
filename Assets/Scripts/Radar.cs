@@ -1,11 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 using DG.Tweening;
 
-public class Radar : Interactable
-{
+public class Radar : Interactable {
     public static Radar Instance;
 
     public CameraRoom targetCameraRoom_Upstairs;
@@ -55,13 +52,11 @@ public class Radar : Interactable
 
     Vector3 initPos;
 
-    private void Awake()
-    {
+    private void Awake() {
         Instance = this;
     }
 
-    public override void Start()
-    {
+    public override void Start() {
         base.Start();
 
         initLocalPos = target_Transform.localPosition;
@@ -73,8 +68,7 @@ public class Radar : Interactable
         //ToUpstairs();
     }
 
-    public override void Update()
-    {
+    public override void Update() {
         base.Update();
 
         target_Transform.SetParent(initTransform);
@@ -91,7 +85,7 @@ public class Radar : Interactable
 
         target_Transform.localPosition = Vector3.zero;
 
-        target_Transform.Translate(Vector3.right * lateralMoveLever.GetValue() *moveSpeed, Space.World);
+        target_Transform.Translate(Vector3.right * lateralMoveLever.GetValue() * moveSpeed, Space.World);
         target_Transform.Translate(Vector3.up * verticalMoveLever.GetValue() * moveSpeed);
 
         target_Transform.SetParent(base_transform);
@@ -101,7 +95,7 @@ public class Radar : Interactable
         base_transform.Rotate(Vector3.up * turnWheel.GetValue() * turnSpeed);
 
         float lerp = Mathf.InverseLerp(-1, 1, zoomLever.value);
-        base_transform.localScale = Vector3.Lerp(Vector3.one * zoom_Min,Vector3.one * zoom_Max, lerp);
+        base_transform.localScale = Vector3.Lerp(Vector3.one * zoom_Min, Vector3.one * zoom_Max, lerp);
 
         target_Transform.SetParent(initTransform);
 
@@ -109,25 +103,20 @@ public class Radar : Interactable
 
     }
 
-    void UpdateObjective()
-    {
+    void UpdateObjective() {
         float distanceToObjective = Vector3.Distance(base_transform.position, objective_Target.position);
 
-        if ( distanceToObjective > objective_Distance)
-        {
+        if (distanceToObjective > objective_Distance) {
             Vector3 dir = (objective_Target.position - base_transform.position).normalized;
             objective_Pointer.position = base_transform.position + (dir * objective_Distance);
-        }
-        else
-        {
+        } else {
             objective_Pointer.position = objective_Target.position;
         }
 
 
     }
 
-    void HandleOnTriggerPully()
-    {
+    void HandleOnTriggerPully() {
         lateralMoveLever.Reset_Start();
         verticalMoveLever.Reset_Start();
 
@@ -136,37 +125,30 @@ public class Radar : Interactable
         target_Transform.DOLocalMove(initLocalPos, reset_duration);
     }
 
-    public override void Interact_Start()
-    {
+    public override void Interact_Start() {
         base.Interact_Start();
 
         //Player.Instance.Hide();
 
-        if(upstairs)
-        {
+        if (upstairs) {
             targetCameraRoom_Upstairs.Trigger(false);
-        }
-        else
-        {
+        } else {
             targetCameraRoom_Downstairs.Trigger(false);
         }
 
     }
 
-    public void ToUpstairs()
-    {
+    public void ToUpstairs() {
         upstairs = true;
         GetTransform.position = upstairs_Anchor.position;
     }
 
-    public void ToDownstairs()
-    {
+    public void ToDownstairs() {
         upstairs = false;
         GetTransform.position = downstairs_Anchor.position;
     }
 
-    public override void Interact_Exit()
-    {
+    public override void Interact_Exit() {
         base.Interact_Exit();
 
         Player.Instance.Show();

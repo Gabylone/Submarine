@@ -1,8 +1,6 @@
 ﻿using UnityEngine;
-using DG.Tweening;
 
-public class Ladder : Interactable
-{
+public class Ladder : Interactable {
     // 🦕🦕🦕🦕🦕🦕🦕🦕🦕🦕🦕🦕🦕🦕 //
 
     public float speedToPosition = 2f;
@@ -24,7 +22,16 @@ public class Ladder : Interactable
     public int step_FootToHand = 4;
     public int step_HandDecal = 1;
 
-    public Transform ladder_Origin;
+    public Vector3 Origin {
+        get {
+            return GetTransform.position;
+        }
+    }
+    public Vector3 End {
+        get {
+            return GetTransform.position + GetTransform.up * 0f;
+        }
+    }
     public Transform ladder_End;
 
     public float distanceToGetOff = 2f;
@@ -54,8 +61,7 @@ public class Ladder : Interactable
     private float lerpTimer;
     public Transform initAnchor;
 
-    public override void Start()
-    {
+    public override void Start() {
         base.Start();
 
         distanceToUpdateIKs = ladderSteps[0].position.y - ladderSteps[1].position.y;
@@ -64,59 +70,45 @@ public class Ladder : Interactable
         getOff_Feedback.SetActive(false);
     }
 
-    public override void Update()
-    {
+    public override void Update() {
         base.Update();
 
-        if (lerping)
-        {
+        if (lerping) {
             lerpTimer += Time.deltaTime;
 
             float lerp = lerpTimer / lerpDuration;
 
-            Vector3 v = Vector3.Lerp( Player.Instance.GetTransform.position , landAnchor.position , lerp );
+            Vector3 v = Vector3.Lerp(Player.Instance.GetTransform.position, landAnchor.position, lerp);
             Player.Instance.GetTransform.position = v;
         }
     }
 
-    public override void Interact_Start()
-    {
-        Vector3 p = GetPositionOnSegment(ladder_Origin.position, ladder_End.position, Player.Instance.GetTransform.position);
+    public override void Interact_Start() {
+        Vector3 p = GetPositionOnSegment(Origin, ladder_End.position, Player.Instance.GetTransform.position);
 
-        for (int i = 0; i < ladderSteps.Length; i++)
-        {
+        for (int i = 0; i < ladderSteps.Length; i++) {
             float disToClosest = Vector3.Distance(ladderSteps[step_Current].position, p);
             float dis = Vector3.Distance(ladderSteps[i].position, p);
-            if ( dis < disToClosest )
-            {
+            if (dis < disToClosest) {
                 SetStep(i);
             }
         }
 
         Debug.Log("ladder _ start");
 
-        currentHeight = Vector3.Distance(p, ladder_Origin.position);
+        currentHeight = Vector3.Distance(p, Origin);
 
         base.Interact_Start();
-
-        //Player.Instance._boxCollider.enabled = false;
-
-        //Player.Instance.GetComponent<Rigidbody>().useGravity = false;
-
-        UpdateIKs();
-
     }
 
-    public override void CheckInput()
-    {
+    public override void CheckInput() {
         //base.CheckInput();
     }
 
-    public override void Interact_Update()
-    {
+    public override void Interact_Update() {
         base.Interact_Update();
 
-        Vector3 pos = ladder_Origin.position + (-player_anchor.forward * decalToLadder_Z) + (player_anchor.up * (currentHeight + decalToLadder_Y));
+        Vector3 pos = Origin + (-player_anchor.forward * decalToLadder_Z) + (player_anchor.up * (currentHeight + decalToLadder_Y));
 
         Player.Instance.GetTransform.position = Vector3.Lerp(Player.Instance.GetTransform.position, pos, speedToPosition * Time.deltaTime * 2f);
 
@@ -125,64 +117,48 @@ public class Ladder : Interactable
 
         float input = Input.GetAxis("Vertical");
 
-        if (input<0)
-        {
-            if (step_Current < ladderSteps.Length-1)
-            {
-                currentHeight += input * climbSpeed * Time.deltaTime;
-            }
-        }
-        
-        if (input > 0)
-        {
-            int l = step_FootToHand + step_HandDecal +1;
-            if (step_Current > l)
-            {
+        if (input < 0) {
+            if (step_Current < ladderSteps.Length - 1) {
                 currentHeight += input * climbSpeed * Time.deltaTime;
             }
         }
 
-        Vector3 p = GetPositionOnSegment(ladder_Origin.position, ladder_End.position, Player.Instance.GetTransform.position);
-        float disToStep = Vector3.Distance(ladderSteps[step_Current].position, ladder_Origin.position);
+        if (input > 0) {
+            int l = step_FootToHand + step_HandDecal + 1;
+            if (step_Current > l) {
+                currentHeight += input * climbSpeed * Time.deltaTime;
+            }
+        }
+
+        Vector3 p = GetPositionOnSegment(Origin, ladder_End.position, Player.Instance.GetTransform.position);
+        float disToStep = Vector3.Distance(ladderSteps[step_Current].position, Origin);
 
         // next step
-        if ( currentHeight > disToStep + distanceToUpdateIKs)
-        {
-            if (step_Current == 0)
-            {
+        if (currentHeight > disToStep + distanceToUpdateIKs) {
+            if (step_Current == 0) {
 
-            }
-            else
-            {
+            } else {
                 SetStep(step_Current - step_Rate);
-                UpdateIKs();
             }
         }
 
         // previous
-        if (currentHeight < disToStep - distanceToUpdateIKs)
-        {
-            if (step_Current == ladderSteps.Length - 1)
-            {
-                
-            }
-            else
-            {
+        if (currentHeight < disToStep - distanceToUpdateIKs) {
+            if (step_Current == ladderSteps.Length - 1) {
+
+            } else {
                 SetStep(step_Current + step_Rate);
-                UpdateIKs();
             }
-            
+
         }
 
         RaycastHit hit;
 
-        if (Physics.Raycast(Player.Instance.GetTransform.position + player_anchor.right * decalToGetOff + player_anchor.up * decalUpToGetOff, -player_anchor.up, out hit, distanceToGetOff, getOff_LayerMask))
-        {
+        if (Physics.Raycast(Player.Instance.GetTransform.position + player_anchor.right * decalToGetOff + player_anchor.up * decalUpToGetOff, -player_anchor.up, out hit, distanceToGetOff, getOff_LayerMask)) {
             getOff_Feedback.transform.position = hit.point;
             getOff_Feedback.SetActive(true);
 
-            if (ExitInput())
-            {
+            if (ExitInput()) {
                 //Player.Instance._boxCollider.enabled = false;
                 landAnchor.position = hit.point;
                 lerping = true;
@@ -200,45 +176,23 @@ public class Ladder : Interactable
                 return;
 
             }
-        }
-        else
-        {
+        } else {
             getOff_Feedback.SetActive(false);
         }
 
     }
 
-    void LerpEnd()
-    {
+    void LerpEnd() {
         lerping = false;
-
         Player.Instance.EnableMovements();
-
-        //Player.Instance.GetComponent<Rigidbody>().useGravity = true;
     }
 
-    public Vector3 GetPositionOnSegment(Vector3 A, Vector3 B, Vector3 point)
-    {
+    public Vector3 GetPositionOnSegment(Vector3 A, Vector3 B, Vector3 point) {
         Vector3 projection = Vector3.Project(point - A, B - A);
         return projection + A;
     }
 
-    private bool CanGetOffLadder(out Vector3 pos)
-    {
-        RaycastHit hit;
-
-        if ( Physics.Raycast(Player.Instance.GetTransform.position + player_anchor.right * decalToGetOff + player_anchor.up * decalUpToGetOff, -player_anchor.up, out hit, distanceToGetOff, getOff_LayerMask) ){
-            pos = hit.point;
-            return true;
-        }
-
-        pos = Vector3.zero;
-
-        return false;
-    }
-
-    void SetStep(int step)
-    {
+    void SetStep(int step) {
         AudioClip clip = steps_Clips[Random.Range(0, steps_Clips.Length)];
         steps_Source.clip = clip;
         steps_Source.Play();
@@ -247,35 +201,16 @@ public class Ladder : Interactable
         step_Current = Mathf.Clamp(step_Current, step_FootToHand + step_HandDecal + 1, ladderSteps.Length - 1);
     }
 
-    void UpdateIKs()
-    {
-        ikTrigger.leftFoot_Target.position = ladderSteps[this.step_Current - currSkip].position - player_anchor.right * iks_decalRight + player_anchor.forward* iks_decalForward;
-        ikTrigger.rightFoot_Target.position     =   ladderSteps[this.step_Current - step_FootDecal].position + player_anchor.right * iks_decalRight + player_anchor.forward * iks_decalForward;
-        ikTrigger.leftHand_Target.position      =    ladderSteps[this.step_Current - step_FootToHand - currSkip].position - player_anchor.right * iks_decalRight + player_anchor.forward * iks_decalForward;
-        ikTrigger.rightHand_Target.position     =   ladderSteps[this.step_Current - step_FootToHand - step_HandDecal].position + player_anchor.right * iks_decalRight + player_anchor.forward * iks_decalForward;
-
-        skip = !skip;
-        currSkip = skip ? 0 : skipDecal;
-
-        CheckIKs();
-    }
-
-    private void OnDrawGizmos()
-    {
-
-        if (interacting)
-        {
+    private void OnDrawGizmos() {
+        if (interacting) {
             Transform playerTransform = GameObject.FindObjectOfType<Player>().transform;
 
             RaycastHit hit;
-            if (Physics.Raycast(playerTransform.position + player_anchor.right * decalToGetOff + player_anchor.up * decalUpToGetOff, -player_anchor.up, out hit, distanceToGetOff, getOff_LayerMask))
-            {
+            if (Physics.Raycast(playerTransform.position + player_anchor.right * decalToGetOff + player_anchor.up * decalUpToGetOff, -player_anchor.up, out hit, distanceToGetOff, getOff_LayerMask)) {
                 Gizmos.color = Color.green;
                 Gizmos.DrawRay(playerTransform.position + player_anchor.right * decalToGetOff + player_anchor.up * decalUpToGetOff, -player_anchor.up * hit.distance);
                 Gizmos.DrawSphere(hit.point, 0.1f);
-            }
-            else
-            {
+            } else {
                 Gizmos.color = Color.blue;
                 Gizmos.DrawRay(playerTransform.position + player_anchor.right * decalToGetOff + player_anchor.up * decalUpToGetOff, -player_anchor.up * distanceToGetOff);
             }

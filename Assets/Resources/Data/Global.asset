@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdb2e21ae13ffcc48b623ea5075152d5, type: 3}
+  m_Name: Global
+  m_EditorClassIdentifier: 
+  seed: 0
+  levelCount: {x: 4, y: 4}
+  caseHeight: 5
+  caseDepth: 1
+  shelfHeight: 1
+  shelf_padding: {x: 0.2, y: 0.2}
+  shelfMult: {x: 0.5, y: 0.5}
+  hullConcavity: 0.5
+  hullScale: 30
+  hexCount: {x: 1, y: 5}
+  size: {x: 10, y: 100}
+  hexRadius: {x: 4, y: 10}
+  hexSideCount: {x: 3, y: 10}
+  sizeMult_max: {x: 0, y: 0, z: 0}
+  balconyDepth: 1.5
+  postsHeight: 1
+  balconyChance: 0.5
+  balconyHeight: 0.2
+  rampWidth: 0.1
+  rampHeight: 1
+  angleToStairs: 30
+  angleToLadder: 70
+  stairWidth: 0.2
+  bridgeWidth: 1.5
+  platform_maxRadius: 4
+  platform_minRadius: 1
+  platform_maxCount: 10
+  platform_maxDot: -0.8
+  platform_maxDis: 10
+  doorScale: {x: 2, y: 2.5}
+  bookWidth: 0.1
+  bookMats:
+  - {fileID: 2100000, guid: 3144595e0d1bf274d8aaa682645f95dc, type: 2}
+  - {fileID: 2100000, guid: b274aa274db29ee4da1d2c9685f4f04c, type: 2}
+  - {fileID: 2100000, guid: 0b1f1639753f0ac42aec149690898748, type: 2}
+  - {fileID: 2100000, guid: 25cf288d8935d554eab2c0f75bf18752, type: 2}
+  - {fileID: 2100000, guid: 7da89dcd4ee48e745aa751eed732b786, type: 2}
+  - {fileID: 2100000, guid: 78187bd1fb0020d448609ae98956d3a6, type: 2}
+  - {fileID: 2100000, guid: 02494f7555a40d44f8af80e2fac7271d, type: 2}
+  - {fileID: 2100000, guid: 0660e4206aca09943bdeff415facc2f5, type: 2}
+  - {fileID: 2100000, guid: 187624af73f436b4a8da49a37ad70dcf, type: 2}
+  - {fileID: 2100000, guid: b39cc744618e46247bc6469532ccb214, type: 2}
+  exitChance: 0.5

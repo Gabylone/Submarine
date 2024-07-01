@@ -1,17 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [ExecuteInEditMode]
-public class ClipSphere : MonoBehaviour
-{
-    public float radius = 0.5f;
-    public float softness = 0.5f;
+public class ClipSphere : MonoBehaviour {
+    public string centerName;
 
-    void Update()
-    {
-        Shader.SetGlobalVector("_GLOBALMaskPosition", transform.position);
-        Shader.SetGlobalFloat("_GLOBALMaskRadius", radius);
-        Shader.SetGlobalFloat("_GLOBALMaskSoftness", softness);
+    void Update() {
+        Shader.SetGlobalVector(centerName, transform.position);
     }
 }

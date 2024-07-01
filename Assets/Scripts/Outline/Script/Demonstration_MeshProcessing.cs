@@ -1,14 +1,12 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Demonstration_MeshProcessing : MonoBehaviour {
 
     public GameObject[] g;
     public Material mat;
 
-	void Start () {
-		foreach (GameObject o in g) {
+    void Start() {
+        foreach (GameObject o in g) {
             Mesh m = o.GetComponent<MeshFilter>().mesh;
 
             Mesh r = MeshProcessor.processForOutlineMesh(m);
@@ -23,5 +21,5 @@ public class Demonstration_MeshProcessing : MonoBehaviour {
             f.AddComponent<MeshRenderer>().material = mat;
             f.GetComponent<MeshRenderer>().material.SetFloat("_Width", 0.05f / o.transform.localScale.x);
         }
-	}
+    }
 }

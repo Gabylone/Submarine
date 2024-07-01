@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public static class MeshProcessor {
@@ -23,7 +22,7 @@ public static class MeshProcessor {
 
             yes(edges, points, a, b, c, uv, verts);
             yes(edges, points, b, c, a, uv, verts);
-            yes(edges, points, c, a, b,  uv, verts);
+            yes(edges, points, c, a, b, uv, verts);
         }
 
         Mesh ret = new Mesh();
@@ -93,7 +92,7 @@ public static class MeshProcessor {
         Vector3[] norms = mesh.normals;
 
         int[] tris = mesh.triangles;
-        for (int i = 0; i < tris.Length; i+= 3) {
+        for (int i = 0; i < tris.Length; i += 3) {
             int a = tris[i];
             int b = tris[i + 1];
             int c = tris[i + 2];

@@ -1,11 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
-using DG.Tweening;
-
-public class Wheel : Interactable
-{
+public class Wheel : Interactable {
     public int index_left = 0;
     public int index_right = 3;
     public Transform[] anchors;
@@ -29,7 +24,7 @@ public class Wheel : Interactable
     public AudioSource loopSource;
 
     bool playedStopSound = false;
-    public float stopSoundBuffer; 
+    public float stopSoundBuffer;
 
     [SerializeField]
     private float value = 0f;
@@ -47,36 +42,27 @@ public class Wheel : Interactable
     public float reset_RotateSpeed = 50f;
     private float reset_LerpAngle;
     private float reset_LerpValue;
-    private Quaternion reset_InitRot;
-    private Quaternion reset_LerpRot;
     public bool reseting = false;
 
-    public override void Start()
-    {
+    public override void Start() {
         base.Start();
-
-        reset_InitRot = _targetTransform.localRotation;
 
         Submarine.Instance.onResetMecanisms += HandleOnCrash;
     }
 
-    public override void Update()
-    {
+    public override void Update() {
         base.Update();
 
-        if (reseting)
-        {
+        if (reseting) {
             Reset_Update();
         }
 
-        if (Input.GetKeyDown(KeyCode.R))
-        {
+        if (Input.GetKeyDown(KeyCode.R)) {
             Reset_Start();
         }
     }
 
-    public override void Interact_Start()
-    {
+    public override void Interact_Start() {
         base.Interact_Start();
 
         PlaySoundEffect(handleClip);
@@ -84,8 +70,7 @@ public class Wheel : Interactable
         UpdateAnchors();
     }
 
-    public override void Interact_Update()
-    {
+    public override void Interact_Update() {
         base.Interact_Update();
 
         Vector3 p = Vector3.Lerp(Player.Instance.GetTransform.position, player_anchor.position, Time.deltaTime * 2f);
@@ -96,8 +81,7 @@ public class Wheel : Interactable
         Turn_Update();
     }
 
-    public override void Interact_Exit()
-    {
+    public override void Interact_Exit() {
         base.Interact_Exit();
 
         PlaySoundEffect(handleClip);
@@ -107,25 +91,21 @@ public class Wheel : Interactable
         IKManager.Instance.StopHands();
         Invoke("Interact_ExitDelay", 0.01f);
     }
-    void Interact_ExitDelay()
-    {
+    void Interact_ExitDelay() {
         loopSource.Stop();
 
     }
-    void Turn_Update()
-    {
+    void Turn_Update() {
         float lerp = value < 0f ? -value : value;
         float pitch = Mathf.Lerp(minPitch, maxPitch, lerp);
         effectSource.pitch = pitch;
         loopSource.pitch = pitch;
 
-        if (turning)
-        {
+        if (turning) {
             if (Input.GetAxis("Horizontal") > -.1f
                 &&
                 Input.GetAxis("Horizontal") < .1f
-                )
-            {
+                ) {
                 loopSource.Stop();
 
                 PlaySoundEffect(stopClips[Random.Range(0, stopClips.Length)]);
@@ -135,8 +115,7 @@ public class Wheel : Interactable
                 return;
             }
 
-            if ((value >= stopSoundBuffer || value <= - stopSoundBuffer) && !playedStopSound)
-            {
+            if ((value >= stopSoundBuffer || value <= -stopSoundBuffer) && !playedStopSound) {
                 PlaySoundEffect(stopClips[Random.Range(0, stopClips.Length)]);
 
                 playedStopSound = true;
@@ -144,16 +123,13 @@ public class Wheel : Interactable
                 Debug.Log("wheel stop clip ");
             }
 
-            if (Input.GetAxis("Horizontal") < 0)
-            {
-                if (value <= -1)
-                {
+            if (Input.GetAxis("Horizontal") < 0) {
+                if (value <= -1) {
                     loopSource.Stop();
                     return;
                 }
 
-                if ( !playedSound)
-                {
+                if (!playedSound) {
                     PlaySoundLoop(rollClips[0]);
 
                     playedSound = true;
@@ -162,17 +138,13 @@ public class Wheel : Interactable
                 angle -= rotateSpeed * Time.deltaTime;
                 value -= valueSpeed * Time.deltaTime;
                 _targetTransform.Rotate(Vector3.forward * rotateSpeed * Time.deltaTime);
-            }
-            else
-            {
-                if (value >= 1)
-                {
+            } else {
+                if (value >= 1) {
                     loopSource.Stop();
                     return;
                 }
 
-                if (!playedSound)
-                {
+                if (!playedSound) {
                     PlaySoundLoop(rollClips[1]);
 
                     playedSound = true;
@@ -183,15 +155,12 @@ public class Wheel : Interactable
                 _targetTransform.Rotate(-Vector3.forward * rotateSpeed * Time.deltaTime);
             }
 
-            if (angle >= angleToStop || angle <= -angleToStop)
-            {
-                if (angle >= angleToStop)
-                {
+            if (angle >= angleToStop || angle <= -angleToStop) {
+                if (angle >= angleToStop) {
                     ChangeAnchor(false);
                 }
 
-                if (angle <= -angleToStop)
-                {
+                if (angle <= -angleToStop) {
                     ChangeAnchor(true);
                 }
 
@@ -200,69 +169,55 @@ public class Wheel : Interactable
                 PlaySoundEffect(stopClips[Random.Range(0, stopClips.Length)]);
                 loopSource.Stop();
             }
-        }
-        else
-        {
+        } else {
             wheelTimer += Time.deltaTime;
 
-            if (wheelTimer >= timeBetweenTurns)
-            {
+            if (wheelTimer >= timeBetweenTurns) {
                 angle = 0f;
                 turning = true;
             }
         }
     }
 
-    public void PlaySoundLoop( AudioClip clip)
-    {
+    public void PlaySoundLoop(AudioClip clip) {
         loopSource.clip = clip;
         loopSource.Play();
     }
 
-    public void PlaySoundEffect(AudioClip clip)
-    {
+    public void PlaySoundEffect(AudioClip clip) {
         effectSource.clip = clip;
         effectSource.Play();
     }
 
-    public float GetLerp()
-    {
+    public float GetLerp() {
         return Mathf.InverseLerp(-value, value, _targetTransform.localRotation.x);
     }
 
-    void ChangeAnchor(bool left)
-    {
+    void ChangeAnchor(bool left) {
         PlaySoundEffect(startClips[Random.Range(0, startClips.Length)]);
 
         playedSound = false;
 
-        if (left)
-        {
+        if (left) {
             index_left -= indexRate;
             index_right -= indexRate;
 
-            if (index_right < 0)
-            {
+            if (index_right < 0) {
                 index_right += anchors.Length;
             }
 
-            if (index_left < 0)
-            {
+            if (index_left < 0) {
                 index_left += anchors.Length;
             }
-        }
-        else
-        {
+        } else {
             index_left += indexRate;
             index_right += indexRate;
 
-            if (index_right >= anchors.Length)
-            {
+            if (index_right >= anchors.Length) {
                 index_right -= anchors.Length;
             }
 
-            if (index_left >= anchors.Length)
-            {
+            if (index_left >= anchors.Length) {
                 index_left -= anchors.Length;
             }
         }
@@ -270,22 +225,18 @@ public class Wheel : Interactable
         UpdateAnchors();
     }
 
-    void UpdateAnchors()
-    {
+    void UpdateAnchors() {
         IKManager.Instance.SetTarget(IKParam.Type.LeftHand, anchors[index_left]);
         IKManager.Instance.SetTarget(IKParam.Type.RightHand, anchors[index_right]);
     }
 
-    public float GetValue()
-    {
+    public float GetValue() {
         return value * valueMultiplier;
     }
 
-    private void OnDrawGizmos()
-    {
+    private void OnDrawGizmos() {
         Gizmos.color = Color.red;
-        foreach (var anchor in anchors)
-        {
+        foreach (var anchor in anchors) {
             Gizmos.DrawWireSphere(anchor.position, 0.075f);
         }
 
@@ -297,20 +248,16 @@ public class Wheel : Interactable
     }
 
     #region reset
-    void HandleOnCrash()
-    {
+    void HandleOnCrash() {
         Reset_Start();
     }
 
-    public void Reset_Start()
-    {
-        if (interacting)
-        {
+    public void Reset_Start() {
+        if (interacting) {
             Interact_Exit();
         }
 
         reseting = true;
-        reset_LerpRot = _targetTransform.localRotation;
         reset_LerpValue = value;
         reset_LerpAngle = angle;
 
@@ -318,31 +265,25 @@ public class Wheel : Interactable
 
         loopSource.Play();
     }
-    public void Reset_Update()
-    {
+    public void Reset_Update() {
         float lerp = reset_Timer / reset_Duration;
 
-        if (value >= 0)
-        {
+        if (value >= 0) {
             _targetTransform.Rotate(Vector3.forward * reset_RotateSpeed * Time.deltaTime);
-        }
-        else
-        {
+        } else {
             _targetTransform.Rotate(-Vector3.forward * reset_RotateSpeed * Time.deltaTime);
         }
 
         value = Mathf.Lerp(reset_LerpValue, 0f, lerp);
-        angle = Mathf.Lerp( reset_LerpAngle , 0f , lerp );
+        angle = Mathf.Lerp(reset_LerpAngle, 0f, lerp);
 
         reset_Timer += Time.deltaTime;
 
-        if ( reset_Timer >= reset_Duration)
-        {
+        if (reset_Timer >= reset_Duration) {
             Reset_Exit();
         }
     }
-    public void Reset_Exit()
-    {
+    public void Reset_Exit() {
         reseting = false;
 
         loopSource.Stop();
