@@ -59,7 +59,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1134619609693400841}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -1.339, y: 0, z: 1.045}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -87,11 +87,11 @@ MonoBehaviour:
   previousPos: {x: 0, y: 0, z: 0}
   Body: {fileID: 1134619609644010125}
   rotSpeed: 10
+  ray_distanceToPlayer: 0.15
   layerMask:
     serializedVersion: 2
     m_Bits: 64
   wallDetection_Distance: 0.2
-  ray_distanceToPlayer: 0.15
 --- !u!65 &1134619609693400842
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -195,6 +195,10 @@ PrefabInstance:
         by Humanoid clips.\n\tTransform 'upper_arm.L'\n\tTransform 'forearm.L'\n\tTransform
         'hand.L'\n\tFrom animation clip 'Wheel'"
       objectReference: {fileID: 0}
+    - target: {fileID: 8443660442347576980, guid: d60de150e96cdd94f8275437323dc12f, type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: 14bad8d0b7fe38a4eb19f20e21fec46c, type: 2}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d60de150e96cdd94f8275437323dc12f, type: 3}
 --- !u!4 &120662958880683439 stripped
@@ -349,6 +353,7 @@ MonoBehaviour:
     avatarIKGoal: 0
     transitionSpeed: 2
     transition_duration: 0.3
+    _spine: {fileID: 0}
   - type: 1
     active: 0
     weight: 0
@@ -358,6 +363,7 @@ MonoBehaviour:
     avatarIKGoal: 1
     transitionSpeed: 2
     transition_duration: 0.3
+    _spine: {fileID: 0}
   - type: 2
     active: 0
     weight: 0
@@ -367,6 +373,7 @@ MonoBehaviour:
     avatarIKGoal: 2
     transitionSpeed: 2
     transition_duration: 0.3
+    _spine: {fileID: 0}
   - type: 3
     active: 0
     weight: 0
@@ -376,6 +383,7 @@ MonoBehaviour:
     avatarIKGoal: 3
     transitionSpeed: 2
     transition_duration: 0.3
+    _spine: {fileID: 0}
   - type: 4
     active: 0
     weight: 0
@@ -385,6 +393,7 @@ MonoBehaviour:
     avatarIKGoal: 3
     transitionSpeed: 2
     transition_duration: 0.3
+    _spine: {fileID: 0}
   - type: 5
     active: 0
     weight: 0
@@ -394,6 +403,7 @@ MonoBehaviour:
     avatarIKGoal: 3
     transitionSpeed: 2
     transition_duration: 0.3
+    _spine: {fileID: 0}
   weight_Speed: 1
 --- !u!95 &6290546295406637013 stripped
 Animator:

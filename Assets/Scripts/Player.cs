@@ -1,3 +1,7 @@
+using AdvancedPeopleSystem;
+using System.Collections.Generic;
+using System.Runtime.ExceptionServices;
+using System.Threading;
 using UnityEngine;
 
 public class Player : MonoBehaviour {
@@ -15,6 +19,14 @@ public class Player : MonoBehaviour {
             return _instance;
         }
     }
+
+    public Transform camera_Transform;
+    public Transform camera_LookAt;
+
+    /// <summary>
+    /// CHARACTER CUSTOMIZATION
+    /// </summary>
+    public CharacterCustomization characterCustomization;
 
     /// <summary>
     /// COMPONENTS
@@ -47,6 +59,20 @@ public class Player : MonoBehaviour {
     public float rotSpeed = 1f;
     private bool lockBodyRot = false;
     public float ray_distanceToPlayer = 0.2f;
+    public bool accordingToCamera = false;
+
+    public Transform temp_Parent;
+
+    [System.Serializable]
+    public class RagdollPart {
+        public string name;
+        public Transform target;
+        public Vector3 center;
+        public Vector3 size;
+        public float mass;
+    }
+
+    public List<RagdollPart> parts = new List<RagdollPart>();
 
     /// <summary>
     /// COLISION
@@ -59,12 +85,22 @@ public class Player : MonoBehaviour {
     // Start is called before the first frame update
     void Start() {
         _boxCollider = GetComponent<BoxCollider>();
+        SetRagdoll(false);
+
+        characterCustomization.Randomize();
+
 
         if (turn_anchor == null) {
             turn_anchor = new GameObject().transform;
             turn_anchor.parent = GetTransform.parent;
             turn_anchor.name = "Turn Anchor (Player)";
         }
+    }
+
+    private void OnAnimatorIK(int layerIndex) {
+        Debug.Log($"test ?");
+        GetAnimator.SetIKPosition(AvatarIKGoal.LeftHand, Vector3.zero);
+        GetAnimator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1f);
     }
 
     // Update is called once per frame
@@ -77,11 +113,29 @@ public class Player : MonoBehaviour {
             _speed = Mathf.Lerp(_speed, 0f, decceleration * Time.deltaTime);
         }
 
+        if (Input.GetKeyDown(KeyCode.L)) {
+            ragdoll = !ragdoll;
+            SetRagdoll(ragdoll);
+        }
+
     }
 
+    bool ragdoll = false;
     private void LateUpdate() {
         if (_canMove) {
             UpdateRotation();
+
+            
+        }
+    }
+
+    void SetRagdoll(bool b) {
+        _canMove = !b;
+        GetAnimator.enabled = !b;
+        var rgs = temp_Parent.GetComponentsInChildren<Rigidbody>();
+        foreach (var item in rgs) {
+            item.isKinematic = !b;
+            item.GetComponent<Collider>().enabled = b;
         }
     }
     #endregion
@@ -107,11 +161,11 @@ public class Player : MonoBehaviour {
 
     void UpdateMovement() {
         Vector3 inputDir = new Vector3(Input.GetAxis("Horizontal"), 0f, Input.GetAxis("Vertical"));
-        Vector3 toCamDir = Camera.main.transform.TransformDirection(inputDir).normalized;
+        Vector3 toCamDir = camera_Transform.TransformDirection(inputDir).normalized;
 
         Vector3 pos = GetTransform.position + toCamDir * ray_distanceToPlayer;
-        Vector3 dir = (pos - Camera.main.transform.position).normalized;
-        Ray ray = new Ray(Camera.main.transform.position, dir);
+        Vector3 dir = (pos - camera_Transform.position).normalized;
+        Ray ray = new Ray(camera_Transform.position, dir);
 
         Vector3 test_lookat = GetTransform.position + toCamDir;
 
@@ -130,10 +184,10 @@ public class Player : MonoBehaviour {
             return;
         }
 
-        bool hitsGround = Physics.Raycast(GetTransform.position, -Body.up + Body.up * 0.2f, 0.1f, layerMask);
+        /*bool hitsGround = Physics.Raycast(GetTransform.position, -Body.up + Body.up * 0.2f, 0.1f, layerMask);
         if (!hitsGround) {
             GetTransform.Translate(-Body.up * 0.58f * Time.deltaTime);
-        }
+        }*/
 
         // speed
         if (PressInput()) {
@@ -159,7 +213,7 @@ public class Player : MonoBehaviour {
         if (lockBodyRot) {
             GetTransform.Translate(turn_anchor.forward * _speed * Time.deltaTime, Space.World);
         } else {
-            GetTransform.Translate(Body.forward * _speed * Time.deltaTime, Space.World);
+            GetTransform.Translate(Body.forward* _speed * Time.deltaTime, Space.World);
         }
     }
 

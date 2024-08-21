@@ -1,54 +1,45 @@
 using UnityEngine;
 using Cinemachine;
+using System.Collections.Generic;
+using UnityEngine.UIElements;
 
 public class CameraController : MonoBehaviour {
-    private Camera cam;
-    private CinemachineVirtualCamera virtualCam;
-    private CinemachineBrain brain;
-    public CinemachineTransposer transposer;
-    public CinemachineComposer composer;
 
-    public float minY = 0f;
-    public float maxY = 0f;
-    public float maxX = 0f;
-    public float maxZ = 0f;
-    public float decal;
+    public static CameraController Instance;
 
-    public Transform composerTarget;
-    public Transform playerTarget;
+    public CameraGroup prefab;
 
-    // Start is called before the first frame update
-    void Start() {
-        virtualCam = GetComponent<CinemachineVirtualCamera>();
-        brain = GetComponent<CinemachineBrain>();
-        transposer = virtualCam.GetCinemachineComponent<CinemachineTransposer>();
-        composer = virtualCam.GetCinemachineComponent<CinemachineComposer>();
+    public List<CameraGroup> cameraGroups = new List<CameraGroup>();
+
+    private void Awake() {
+        Instance = this;
     }
 
-    // Update is called once per frame
-    void Update() {
-        if (Input.GetKeyDown(KeyCode.T))
-            randomizeTransposer();
 
-        if (Input.GetKeyDown(KeyCode.C))
-            randomizeComposer();
-
-        composer.m_TrackedObjectOffset = composerTarget.position;
-        var d = (composerTarget.position - playerTarget.position).normalized;
-        d.y = 0F;
-        var p = -d * decal;
-        Vector3 offset = transform.TransformDirection(Vector3.right * maxX);
-        transposer.m_FollowOffset = p + offset + Vector3.up * maxY;
+    public void NewCameraGroup(List<Vector3> positions) {
+        var newCameraGroup = Instantiate(prefab, transform);
+        newCameraGroup.SetWaypoints(positions);
+        cameraGroups.Add(newCameraGroup);
     }
 
-    private void randomizeComposer() {
-    }
+    /*private void Start() {
+        cameraPaths = GetComponentsInChildren<CameraPath>();
+    }*/
 
-    private void randomizeTransposer() {
-        float x = Random.Range(-maxX, maxX);
-        float y = Random.Range(minY, maxY);
-        float z = Random.Range(-maxZ, maxZ);
-        Vector3 offset = new Vector3(x, y, z);
-        transposer.m_FollowOffset = offset;
-    }
+    /*void Update() {
+        var closestCamera = cameraPaths[0];
+        var playerPos = Player.Instance.GetTransform.position;
+
+        foreach (var cameraPath in cameraPaths) {
+            cameraPath.virtualCamera.Priority = 0;
+        }
+
+        for (int i = 1; i < cameraPaths.Length; i++) {
+            float dis1 = Vector3.Distance(playerPos, cameraPaths[i].virtualCamera.transform.position);
+            float dis2 = Vector3.Distance(playerPos, closestCamera.virtualCamera.transform.position);
+            if (dis1 < dis2)
+                closestCamera = cameraPaths[i];
+        }
+        closestCamera.virtualCamera.Priority = 11;
+    }*/
 }

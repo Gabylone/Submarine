@@ -1,19 +1,25 @@
 using System.Collections.Generic;
+using System.Xml.Schema;
 using UnityEngine;
+using UnityEngine.Analytics;
 
+[System.Serializable]
 public class Platform {
-    public Vector3 pos;
+    public Vector3 origin;
     public float radius;
+    public Vector3 hitPoint;
     public List<Bridge.Side> bridgeSides = new List<Bridge.Side>();
+
+    public List<Vector3> debug_LinkedPlatforms = new List<Vector3>();
 
     float angle;
 
     float Angle {
         get {
             if (angle == 0) {
-                Bridge.Side bs = newSide(pos, Vector3.forward);
-                Vector3 aDir1 = bs.left - pos;
-                Vector3 aDir2 = bs.mid - pos;
+                Bridge.Side bs = CreateNewBridgeSide(origin + Vector3.forward);
+                Vector3 aDir1 = bs.left - origin;
+                Vector3 aDir2 = bs.mid - origin;
                 angle = Vector3.Angle(aDir1, aDir2) * 2f;
             }
 
@@ -21,112 +27,115 @@ public class Platform {
         }
     }
 
-    public Platform(Vector3 _pos) {
-        pos = _pos;
+    public void CreatLinksWithFloor() {
+        float w = GlobalRoomData.Get.bridgeWidth;
+        RoomData data = RoomManager.Instance.debug_data;
+        int max = 1;
+        for (int i = 0; i < data.Sides[0].Length; i++) {
+            Side side = data.Sides[0][i];
 
-        Collider[] colliders = Physics.OverlapSphere(pos, GlobalRoomData.Get.platform_maxRadius, LayerMask.GetMask("Wall") | LayerMask.GetMask("Floor"));
-        if (colliders.Length > 0) {
-            Vector3 closestPoint = colliders[0].ClosestPoint(pos);
-            for (int i = 1; i < colliders.Length; i++) {
-                var tmp = colliders[i].ClosestPoint(pos);
-                var dis1 = Vector3.Distance(tmp, pos);
-                var dis2 = Vector3.Distance(closestPoint, pos);
-                if (dis1 < dis2)
-                    closestPoint = tmp;
+            for (int b = 0; b < side.bridgeSides.Count; b++) {
+
+                Bridge.Side endSide = side.bridgeSides[b];
+                Bridge.Side startSide = CreateNewBridgeSide(endSide.mid);
+
+                if (startSide.Blocked(endSide))
+                    continue;
+
+                if (!CanFitBridgeSide(startSide))
+                    continue;
+
+
+                startSide.end = endSide;
+                bridgeSides.Add(startSide);
+                --max;
+                break;
             }
 
-            radius = (closestPoint - pos).magnitude - GlobalRoomData.Get.balconyDepth;
-        } else {
-            radius = Random.Range(GlobalRoomData.Get.platform_minRadius, GlobalRoomData.Get.platform_maxRadius);
+            if (max <= 0)
+                break;
         }
     }
 
-    public void linkWithBalconies() {
+    public void CreateLinks_Balconies_Floor() {
         float w = GlobalRoomData.Get.bridgeWidth;
 
-        RoomData data = RoomManager.Instance.data;
-        List<Bridge.Side> tmpSides = new List<Bridge.Side>();
+        RoomData data = RoomManager.Instance.debug_data;
+        List<Bridge.Side> balconySides = new List<Bridge.Side>();
         for (int lvl = 0; lvl < data.Sides.Length; lvl++) {
             for (int i = 0; i < data.Sides[lvl].Length; i++) {
                 Side side = data.Sides[lvl][i];
-                if (side.bridgeSides == null)
-                    continue;
-                foreach (var bSide in side.bridgeSides)
-                    tmpSides.AddRange(side.bridgeSides.FindAll(x => !x.used && Vector3.Distance(x.mid, pos) < GlobalRoomData.Get.platform_maxDis));
+
+                if (lvl == 0 || side.balcony) {
+                    // floor link
+                    foreach (var bSide in side.bridgeSides)
+                        balconySides.AddRange(side.bridgeSides.FindAll(x => !x.used && Vector3.Distance(x.mid, origin) < GlobalRoomData.Get.platform_maxDis));
+                }
             }
         }
 
-        if (tmpSides.Count <= 0)
+        if (balconySides.Count <= 0)
             return;
 
-        int b = 0;
-        while (tmpSides.Count > 0) {
-            int i = Random.Range(0, tmpSides.Count);
-            Bridge.Side bSide = tmpSides[i];
+        while (balconySides.Count > 0) {
+            int i = Random.Range(0, balconySides.Count);
+            Bridge.Side balconySide = balconySides[i];
 
-            tmpSides.RemoveAt(i);
+            balconySides.RemoveAt(i);
 
-            ++b;
-            if (b >= GlobalRoomData.Get.platform_maxCount)
-                break;
+            Bridge.Side platformBridgeSide = CreateNewBridgeSide(balconySide.mid);
 
-            Bridge.Side nSide = newSide(pos, bSide.mid);
-            if (!canFit(nSide))
+            if (platformBridgeSide.Blocked(balconySide))
                 continue;
-            nSide.end = bSide;
-            bridgeSides.Add(nSide);
+
+            if (!CanFitBridgeSide(platformBridgeSide))
+                continue;
+            platformBridgeSide.end = balconySide;
+            bridgeSides.Add(platformBridgeSide);
         }
     }
 
-    public void linkBetweenPlatforms(List<Platform> platforms, int c) {
+    public void CheckLinksWithOtherPlatforms(List<Platform> platforms, int c) {
         float w = GlobalRoomData.Get.bridgeWidth;
 
         for (int i = 0; i < platforms.Count; i++) {
             // skip current plt
             if (i == c) continue;
 
-            Platform p = platforms[i];
+            Platform targetPlatform = platforms[i];
 
-            // pos outside radius circle in same Y
-            Vector3 dir = p.pos - pos;
-            dir.y = 0f;
-            Ray ray = new Ray(pos, dir);
+            // create bridge sides
+            Bridge.Side bs_Start = CreateNewBridgeSide(targetPlatform.origin);
+            Bridge.Side bs_End = targetPlatform.CreateNewBridgeSide(origin);
 
-            // check if path is free (consider two rays for left & right, with buffer)
-            if (Physics.Raycast(ray, dir.magnitude, LayerMask.GetMask("Wall")))
+            if (bs_Start.Blocked(bs_End))
                 continue;
-
-            // place side towards other plt
-            Bridge.Side start = newSide(pos, p.pos);
-
-            // check if other plt already has side
-
-            Bridge.Side end = newSide(p.pos, pos);
-
-            Bridge.Side dup = p.bridgeSides.Find(
+            // check if other plt already has side at this location
+            Bridge.Side dup = targetPlatform.bridgeSides.Find(
                 x =>
-                x.left == end.left && x.right == end.right);
+                x.left == bs_End.left && x.right == bs_End.right);
             if (dup == null) {
                 // if it doesn't, create a link ( which will result in a bridge )
-                start.end = end;
-                start.link = true;
+                bs_Start.end = bs_End;
+                bs_Start.link = true;
 
-                if (!canFit(start))
+                if (!CanFitBridgeSide(bs_Start))
                     continue;
-                if (!p.canFit(end))
+                if (!targetPlatform.CanFitBridgeSide(bs_End))
                     continue;
-                if (Vector3.Dot(start.normal, start.dir) < 0)
+                if (Vector3.Dot(bs_Start.normal, bs_Start.dir) < 0)
                     continue;
-                bridgeSides.Add(start);
-                p.bridgeSides.Add(end);
+
+                bridgeSides.Add(bs_Start);
+                targetPlatform.bridgeSides.Add(bs_End);
+                debug_LinkedPlatforms.Add(targetPlatform.origin);
             }
-            // else, add side anyway for platform creation 
         }
 
     }
 
-    public Bridge.Side newSide(Vector3 origin, Vector3 target) {
-        Vector3 dir = target - origin;
+    public Bridge.Side CreateNewBridgeSide(Vector3 otherPlatform) {
+        Vector3 dir = otherPlatform - origin;
         dir.y = 0f;
 
         float w = GlobalRoomData.Get.bridgeWidth;
@@ -137,12 +146,12 @@ public class Platform {
         return new Bridge.Side(left, right);
     }
 
-    public bool canFit(Bridge.Side side) {
+    public bool CanFitBridgeSide(Bridge.Side side) {
         for (int i = 0; i < bridgeSides.Count; i++) {
             Bridge.Side bs = bridgeSides[i];
 
-            Vector3 dir1 = side.mid - pos;
-            Vector3 dir2 = bs.mid - pos;
+            Vector3 dir1 = side.mid - origin;
+            Vector3 dir2 = bs.mid - origin;
 
             if (Vector3.Angle(dir1, dir2) < Angle)
                 return false;
@@ -151,15 +160,23 @@ public class Platform {
         return true;
     }
 
-    public void removeDoubles() {
+    public void HandleLonely() {
+        if (bridgeSides.Count == 1) {
+            Debug.Log($"handled loney");
+            Bridge.Side s = bridgeSides[0];
+            //CreateNewBridgeSide(origin - (s.mid-origin), Vector3.forward);
+        }
+    }
+
+    public void RemoveDuplicateBridges() {
         for (int i = 0; i < bridgeSides.Count; i++) {
             Bridge.Side bs1 = bridgeSides[i];
 
             for (int j = i + 1; j < bridgeSides.Count; j++) {
                 Bridge.Side bs2 = bridgeSides[j];
 
-                Vector3 dir1 = bs1.mid - pos;
-                Vector3 dir2 = bs2.mid - pos;
+                Vector3 dir1 = bs1.mid - origin;
+                Vector3 dir2 = bs2.mid - origin;
 
                 if (Vector3.Angle(dir1, dir2) < Angle) {
                     if (bs1.link && bs2.link) {
@@ -183,12 +200,15 @@ public class Platform {
         }
 
         for (int i = bridgeSides.Count - 1; i >= 0; i--) {
-            if (!bridgeSides[i].valid)
+            if (!bridgeSides[i].valid) {
+                // si t'as pas vu ça pendant un moment c'ets que la fonction sert à r
+                Debug.LogError($"removed invalid bridge");
                 bridgeSides.RemoveAt(i);
+            }
         }
     }
 
-    public void buildBridges() {
+    public void BuildBridges() {
         if (bridgeSides.Count == 0)
             return;
 
@@ -199,76 +219,124 @@ public class Platform {
         }
     }
 
-    public void initPlatformMesh() {
-        if (bridgeSides.Count == 0)
+    public void DrawMesh() {
+        if (bridgeSides.Count == 0) {
+            Debug.Log($"no bridge platform ?");
             return;
+        }
 
         Bridge.Side bs = bridgeSides.Find(x => !x.blocked);
-        if (bs == null)
+        if (bs == null) {
+            Debug.Log($"all bridges blocked ?");
             return;
+        }
 
+        // sort all bridge sides
         ClockwiseBridgeSidesComparer comp = new ClockwiseBridgeSidesComparer();
-        comp.origin = pos;
-        comp.dir = bridgeSides[0].left - pos;
+        comp.origin = origin;
+        comp.dir = bridgeSides[0].left - origin;
         comp.n = Vector3.Cross(comp.dir, Vector3.up);
         bridgeSides.Sort((Bridge.Side b1, Bridge.Side b2) => comp.Compare(b1, b2));
 
-        List<Vector3> pts = new List<Vector3>();
+        // get all points (sorted from bridge sort)
+        List<Vector3> vertices = new List<Vector3>();
         foreach (var bSide in bridgeSides) {
-            pts.Add(bSide.left);
-            pts.Add(bSide.right);
+            vertices.Add(bSide.left);
+            vertices.Add(bSide.right);
         }
 
-        if (bridgeSides.Count == 1) {
-            Bridge.Side s = bridgeSides[0];
-            Vector3 nLeft = pos - (s.left - pos);
-            Vector3 nRight = pos - (s.right - pos);
-            pts.Add(nLeft);
-            pts.Add(nRight);
-            Case.NewRamp(nLeft, nRight);
+        // calc center
+        var center = Vector3.zero;
+        foreach (var vertex in vertices)
+            center += vertex;
+        center /= vertices.Count;
+        vertices.Insert(0, center);
+
+        List<int> triangles = new List<int>();
+        for (int i = 1; i < vertices.Count; i++) {
+            var nextIndex = i + 1 == vertices.Count ? 1 : i + 1;
+            triangles.Add(0);
+            triangles.Add(i);
+            triangles.Add(nextIndex);
         }
 
-        int o = 1;
-        List<Vector3[]> squares = new List<Vector3[]>();
-        while (o < pts.Count - 1) {
-            Vector3[] square = new Vector3[4];
-            square[0] = pts[0];
+        int c = vertices.Count;
+        for (int i = 0; i < c; i++)
+            vertices.Add(vertices[i] - Vector3.up * GlobalRoomData.Get.balconyHeight);
 
-            for (int j = 0; j < 3; j++)
-                square[j + 1] = pts[o + j];
-            squares.Add(square);
-            o += 2;
+
+        for (int i = c; i < vertices.Count; i++) {
+            var nextIndex = i + 1 == vertices.Count ? c + 1 : i + 1;
+            triangles.Add(nextIndex);
+            triangles.Add(i);
+            triangles.Add(c);
         }
 
-        float balconyHeight = GlobalRoomData.Get.balconyHeight;
-        foreach (var item in squares) {
-            Transform platform_Transform = PoolManager.Instance.RequestObject("bridge");
-            MeshFilter meshFilter = platform_Transform.GetComponentInChildren<MeshFilter>();
+        for (int i = 1; i < c; i++) {
 
-            Vector3[] vertices = new Vector3[8]
-            {
+            if (i == c - 1) {
+                triangles.Add(i + c);
+                triangles.Add(1);
+                triangles.Add(i);
+                triangles.Add(i + c);
+                triangles.Add(1 + c);
+                triangles.Add(1);
+                continue;
+            }
 
-                item[0],
-                item[1],
-                item[0] - Vector3.up * balconyHeight,
-                item[1]- Vector3.up * balconyHeight,
-                item[3] - Vector3.up * balconyHeight,
-                item[2] - Vector3.up * balconyHeight,
-                item[3],
-                item[2],
+            triangles.Add(i + c);
+            triangles.Add(i + 1);
+            triangles.Add(i);
 
-            };
+            triangles.Add(i + c);
+            triangles.Add(i + c + 1);
+            triangles.Add(i + 1);
 
-            MeshControl.Update(meshFilter, vertices);
-            platform_Transform.GetComponentInChildren<MeshCollider>().sharedMesh = meshFilter.mesh;
         }
 
+        Vector3[] normals = new Vector3[vertices.Count];
+        var t = center + Vector3.up * GlobalRoomData.Get.balconyHeight / 2f;
+        for (int i = 0; i < vertices.Count; i++) {
+            normals[i] = Vector3.up;
+        }
+
+
+        Vector2[] uvs = new Vector2[vertices.Count];
+        uvs[0] = new Vector2(0f, 0f);
+
+
+        var mesh = new Mesh() {
+            name = "Platform Mesh"
+        };
+
+        mesh.Clear();
+        mesh.vertices = vertices.ToArray();
+
+        mesh.uv = uvs;
+        mesh.normals = normals;
+        mesh.triangles = triangles.ToArray();
+
+        mesh.RecalculateBounds();
+        mesh.RecalculateTangents();
+        mesh.RecalculateNormals();
+
+        var platform_Transform = PoolManager.Instance.RequestObject("platform");
+        var meshFilter = platform_Transform.GetComponentInChildren<MeshFilter>();
+
+        meshFilter.mesh = mesh;
+        meshFilter.GetComponentInChildren<MeshCollider>().convex = false;
+        meshFilter.GetComponentInChildren<MeshCollider>().sharedMesh = meshFilter.mesh;
     }
 
     public void buildRamps() {
         foreach (var item in bridgeSides) {
             if (!item.used) {
+                // create platform ramp
                 Case.NewRamp(item.left, item.right);
+            } else {
+                // create bridge ramp
+                Case.NewRamp(item.left, item.end.right);
+                Case.NewRamp(item.right, item.end.left);
             }
         }
 

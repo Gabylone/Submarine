@@ -131,7 +131,6 @@ public class Interactable : MonoBehaviour {
         outlineRenderers = tmpRends.ToArray();
     }
     public void EnableOutline() {
-        Tween.Bounce(outlineGroup.transform);
         /*outlineGroup.transform.DOLocalMove(outlineGroup.transform.localPosition + Vector3.up * 0.1f, 0.1f).SetEase(Ease.OutBounce);
         outlineGroup.transform.DOLocalMove(outlineGroup.transform.localPosition - Vector3.up * 0.1f, 0.1f).SetDelay(0.1f);*/
 

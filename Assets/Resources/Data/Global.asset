@@ -26,7 +26,7 @@ MonoBehaviour:
   hexRadius: {x: 4, y: 10}
   hexSideCount: {x: 3, y: 10}
   sizeMult_max: {x: 0, y: 0, z: 0}
-  balconyDepth: 1.5
+  balconyDepth: 3
   postsHeight: 1
   balconyChance: 0.5
   balconyHeight: 0.2
@@ -36,8 +36,13 @@ MonoBehaviour:
   angleToLadder: 70
   stairWidth: 0.2
   bridgeWidth: 1.5
-  platform_maxRadius: 4
-  platform_minRadius: 1
+  bridgeHeight: 1
+  bridgeSideBuffer: 0.05
+  bridgeLenghtBuffer: 0.1
+  bridgeUpDecal: 0.3
+  decalBetweenBridges: 0.5
+  platform_maxRadius: 7
+  platform_minRadius: 1.01
   platform_maxCount: 10
   platform_maxDot: -0.8
   platform_maxDis: 10

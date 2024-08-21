@@ -1,3 +1,4 @@
+using AdvancedPeopleSystem;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,8 +14,6 @@ public class PoolManager : MonoBehaviour {
         }
     }
 
-    public Transform parent;
-
     [System.Serializable]
     public class Pool {
         public string name;
@@ -25,7 +24,7 @@ public class PoolManager : MonoBehaviour {
             get {
                 if (parent == null) {
                     parent = new GameObject().transform;
-                    parent.SetParent(Instance.transform);
+                    parent.SetParent(PoolManager.Instance.currentParent);
                     parent.name = name;
                 }
 
@@ -53,6 +52,7 @@ public class PoolManager : MonoBehaviour {
         }
     }
 
+    public Transform currentParent;
     private List<PoolRequest> poolRequests = new List<PoolRequest>();
     public List<Pool> poolList;
 
@@ -88,7 +88,7 @@ public class PoolManager : MonoBehaviour {
 
         poolRequests.Clear();
     }
-    public Transform RequestObject(string _name) {
+    public Transform RequestObject(string _name, Transform _parent = null) {
         PoolRequest request = poolRequests.Find(x => x.name == _name);
         if (request == null) {
             request = new PoolRequest(_name);
@@ -117,7 +117,7 @@ public class PoolManager : MonoBehaviour {
 
         tr = request.list[request.index];
         tr.gameObject.SetActive(true);
-        tr.SetParent(parent);
+        tr.SetParent(_parent == null ? pool.GetParent : _parent);
 
         request.index++;
         return tr;

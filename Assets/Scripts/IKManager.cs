@@ -1,7 +1,6 @@
 using UnityEngine;
 
 public class IKManager : MonoBehaviour {
-    public Transform headLook;
 
     static IKManager _instance;
     public static IKManager Instance {
@@ -14,20 +13,19 @@ public class IKManager : MonoBehaviour {
         }
     }
 
+    public Transform headLook;
     public Animator _animator;
-
-
     public IKParam[] ikMainParams;
-    public IKParam GetIKParam(IKParam.Type type) {
-        return ikMainParams[(int)type];
-    }
-
     public float weight_Speed = 1f;
 
     private void Start() {
         foreach (var item in ikMainParams) {
             item.Init();
         }
+    }
+
+    public IKParam GetIKParam(IKParam.Type type) {
+        return ikMainParams[(int)type];
     }
 
     private void Update() {
@@ -65,7 +63,6 @@ public class IKManager : MonoBehaviour {
         for (int index = 0; index < ikMainParams.Length - 1; index++) {
             IKParam.Type type = (IKParam.Type)index;
             IKParam ikParam = GetIKParam(type);
-
             ikParam.Update();
         }
     }

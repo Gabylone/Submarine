@@ -50,6 +50,11 @@ public class GlobalRoomData : ScriptableObject {
 
     [Header("BRIDGE")]
     public float bridgeWidth;
+    public float bridgeHeight;
+    public float bridgeSideBuffer;
+    public float bridgeLenghtBuffer;
+    public float bridgeUpDecal;
+    public float decalBetweenBridges;
     public float platform_maxRadius;
     public float platform_minRadius;
     public float platform_maxCount;

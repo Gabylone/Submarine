@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1727710840476697285}
   - component: {fileID: 5850180285748581265}
   m_Layer: 0
-  m_Name: ramp
+  m_Name: ramp(mesh)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

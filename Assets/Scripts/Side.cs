@@ -6,74 +6,77 @@ public class Side {
     public int lvl;
     public bool exit;
     public bool balcony;
-    private Vector3[] points = new Vector3[2];
-    private Vector3[] innerPoints = new Vector3[2];
+    private Vector3[] _basePoints = new Vector3[2];
+    private Vector3[] _balconyPoints = new Vector3[2];
+    public List<Bridge.Side> bridgeSides = new List<Bridge.Side>();
     public void AddBridgeSide(Bridge.Side bo) {
-        if (bridgeSides == null)
-            bridgeSides = new List<Bridge.Side>();
-
         bridgeSides.Add(bo);
     }
-    public List<Bridge.Side> bridgeSides;
 
-    public Vector3 Get(int i) {
-        return points[i];
+    public Vector3 GetBasePoint(int i) {
+        return _basePoints[i];
     }
-    public void Set(int i, Vector3 v) {
-        points[i] = v;
+    public void SetBasePoint(int i, Vector3 v) {
+        _basePoints[i] = v;
     }
-    public Vector3 GetInner(int i) {
-        return innerPoints[i];
+    public Vector3 GetBalconyPoint(int i) {
+        return _balconyPoints[i];
     }
-    public void SetInner(int i, Vector3 v) {
-        innerPoints[i] = v;
+    public void SetBalconyPoint(int i, Vector3 v) {
+        _balconyPoints[i] = v;
     }
 
     public Vector3 Normal {
         get {
-            return Vector3.Cross(Dir, Vector3.up);
+            return Vector3.Cross(BaseDirection, Vector3.up);
         }
     }
 
-    public Vector3 Dir {
+    public Vector3 BaseDirection {
         get {
-            return (Get(1) - Get(0)).normalized;
+            return (GetBasePoint(1) - GetBasePoint(0)).normalized;
         }
     }
 
-    public Vector3 InnerDir {
+    public Vector3 BalconyDirection {
         get {
-            return (GetInner(1) - GetInner(0)).normalized;
+            return (GetBalconyPoint(1) - GetBalconyPoint(0)).normalized;
         }
     }
 
-    public float InnerDis {
+    public Vector3 BaseBalconyDir{
         get {
-            return (InnerMid - Mid).magnitude;
+            return (BalconyMid - BaseMid).normalized;
         }
     }
 
-    public float InnerLenght {
+    public float BaseBalconyDistance {
         get {
-            return (GetInner(1) - GetInner(0)).magnitude;
+            return (BalconyMid - BaseMid).magnitude;
         }
     }
 
-    public float Lenght {
+    public float BalconyWidth {
         get {
-            return (Get(1) - Get(0)).magnitude;
+            return (GetBalconyPoint(1) - GetBalconyPoint(0)).magnitude;
         }
     }
 
-    public Vector3 Mid {
+    public float BaseWidth {
         get {
-            return Get(0) + Dir * Lenght / 2f;
+            return (GetBasePoint(1) - GetBasePoint(0)).magnitude;
         }
     }
 
-    public Vector3 InnerMid {
+    public Vector3 BaseMid {
         get {
-            return GetInner(0) + InnerDir * InnerLenght / 2f;
+            return GetBasePoint(0) + BaseDirection * BaseWidth / 2f;
+        }
+    }
+
+    public Vector3 BalconyMid {
+        get {
+            return GetBalconyPoint(0) + BalconyDirection * BalconyWidth / 2f;
         }
     }
 

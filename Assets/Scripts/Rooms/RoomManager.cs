@@ -1,9 +1,18 @@
+using Mono.Cecil.Cil;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
+using UnityEditor.AssetImporters;
 using UnityEngine;
 
+/// <summary>
+/// script for room EDITOR script generation ( includes coroutines, debug functions & data etc... )
+/// </summary>
 public class RoomManager : MonoBehaviour {
+    /// <summary>
+    /// SINGLETON
+    /// </summary>
     private static RoomManager _inst;
     public static RoomManager Instance {
         get {
@@ -15,113 +24,247 @@ public class RoomManager : MonoBehaviour {
         }
     }
 
-    public List<ConcaveHull.Line> rest = new List<ConcaveHull.Line>();
-    public ConcaveHull.Line lastLine;
-    public float intersectionDecal = 0f;
+    public Transform debug_parent;
+    public delegate void OnWait();
+    public OnWait onWait;
 
-    public Transform anchor;
-    public Platform[] platforms;
-    public RoomData data;
-    public int bridgeID;
+    public int debug_currentPlatformIndex = 0;
 
-    public List<Vector3> poses = new List<Vector3>();
+    public bool debugBalconies = false;
+
+    public bool debugPlatforms = false;
+    public bool debugPlatformLinks = false;
+    public bool debugPlatformRadius = false;
+    public bool debugPlatformSides = false;
+    public bool debugPlatformBridges = false;
+    public bool debugBridges = false;
+    public bool debugHexes = false;
+
+    /// <summary>
+    /// DATA
+    /// </summary>
+    public RoomData debug_data;
     private void Start() {
-        StartCoroutine(NewRoomCoroutine());
+        Invoke("GenerateRoom", 0f);
     }
 
-    IEnumerator NewRoomCoroutine() {
-        RoomCreator.NewRoom(data);
-
-        yield return new WaitForEndOfFrame();
-        yield return BuildBridgesCoroutine();
+    void GenerateRoom() {
+        Random.InitState(debug_data.seed);
+        RoomGenerator.NewRoom(debug_data);
     }
 
-    IEnumerator BuildBridgesCoroutine() {
-        // get potential platform positsion
-        List<Vector3> platformPositions = RoomCreator.GetPlatformPositions(data);
-        yield return new WaitForEndOfFrame();
 
-        for (int i = 0; i < platformPositions.Count; i++) {
-            // skip platforms 
-            Platform p = new Platform(platformPositions[i]);
-            if (p.radius < GlobalRoomData.Get.platform_minRadius)
-                continue;
-            data.platforms.Add(p);
-            poses.Add(platformPositions[i]);
+    private void Update() {
+        if (Input.GetKeyDown(KeyCode.N)) {
+            canSkip = true;
+
         }
-        // first make links and build briges for priorities
-        for (int i = 0; i < data.platforms.Count; i++)
-            data.platforms[i].linkBetweenPlatforms(data.platforms, i);
-        // set link with balconies
-        foreach (var item in data.platforms)
-            item.linkWithBalconies();
-        // removing double
-        foreach (var item in data.platforms)
-            item.removeDoubles();
-        foreach (var item in data.platforms)
-            item.initPlatformMesh();
-        // build bridges with pause
-        foreach (var item in data.platforms) {
-            item.buildBridges();
-            yield return new WaitForEndOfFrame();
+    }
+
+    public void Wait() {
+        Invoke("Delay", 0f);
+    }
+    void Delay() {
+        if (onWait != null) {
+            onWait();
         }
+    }
+
+    public void SetCameras() {
+
+        // CAMERAS
+        var positions = new List<Vector3>();
+        float waypointRate = 1f;
+        for (int i = 0; i < debug_data.Sides[0].Length; i++) {
+            var side = debug_data.Sides[0][i];
+            var l = side.BaseWidth * waypointRate;
+            var pos = side.BaseMid + side.Normal * 0.25f;
+            positions.Add(pos);
+            /*for (int j = 0; j < l; j++)
+                positions.Add(side.GetBasePoint(0) + side.BaseDirection / waypointRate * i);*/
+        }
+        CameraController.Instance.NewCameraGroup(positions);
+    }
+
+
+    public Bridge.Side debug_CurrentBridgeSide; 
+    bool canSkip = false;
+
+    public void BuildPlatform(int _currentPlatformIndex) {
+        StartCoroutine(BuildPlatformsCoroutine(_currentPlatformIndex));
+    }
+
+    IEnumerator BuildPlatformsCoroutine(int _currentPlatformIndex) {
+
+        var _handledData = debug_data;
+        var currentPlatform = _handledData.platforms[_currentPlatformIndex];
+
+        currentPlatform.CheckLinksWithOtherPlatforms(_handledData.platforms, _currentPlatformIndex);
+        yield return new WaitForEndOfFrame();
+        currentPlatform.CreatLinksWithFloor();
+        currentPlatform.CreateLinks_Balconies_Floor();
+        currentPlatform.RemoveDuplicateBridges();
+        yield return new WaitForEndOfFrame();
+        currentPlatform.HandleLonely();
+        currentPlatform.DrawMesh();
+        yield return new WaitForEndOfFrame();
+        currentPlatform.BuildBridges();
         yield return new WaitForEndOfFrame();
 
-        foreach (var item in data.platforms)
-            item.buildRamps();
+        /*while (!canSkip)
+            yield return null;
+        canSkip = false;*/
 
-        yield return new WaitForEndOfFrame();
+        int nextPlatformIndex = _currentPlatformIndex + 1;
+        if ( nextPlatformIndex == _handledData.platforms.Count) {
+            //RoomGenerator.BuildRamps();S
+            Debug.Log($"Finished all platforms");
 
-        RoomCreator.CreateBalconyRamps(data);
+            // check for finished bridges
+            foreach (var platform in debug_data.platforms) {
+                foreach (var bs in platform.bridgeSides) {
+                    if ( bs.end != null ) {
+                        if (bs.Blocked(bs.end)) {
+                            bs.end = null;
+                            bs.used = false;
+                            bs.parent.gameObject.SetActive(false);
+                            yield return new WaitForEndOfFrame();
+                            Debug.Log($"Blocked on second pass");
+                            /*if ( bs.parent != null) {
+                                foreach (var item in bs.parent.GetComponentsInChildren<MeshRenderer>()) {
+                                    item.material.color = Color.red;
+                                }
+                            }*/
+                        }}
+                }
+            }
 
-        UnityEngine.Debug.Log("finished bridge generation");
+            // set Cameras
+            
+
+
+        } else {
+            BuildPlatform(nextPlatformIndex);
+        }
+
+
+        // set camera
     }
 
     // GIZMOS
     private void OnDrawGizmos() {
-        Side entrance = data.Sides[data.entranceLevel][0];
-        anchor.position = entrance.Mid;
-        anchor.forward = entrance.Normal;
 
-        if (data != null && data.Sides != null) {
-            Hex[] hexes = data.hexes;
+        Transform parent = PoolManager.Instance.currentParent == null ? debug_parent : PoolManager.Instance.currentParent;
+        Side entrance = debug_data.Sides[debug_data.entranceLevel][0];
+        parent.position = entrance.BaseMid;
+        parent.forward = entrance.Normal;
+
+        if (debug_data != null && debug_data.Sides != null) {
+            Hex[] hexes = debug_data.hexes;
             List<Vector3> points = new List<Vector3>();
             for (int i = 0; i < hexes.Length; i++)
                 points.AddRange(hexes[i].GetPositions());
 
             Gizmos.color = Color.grey;
 
-            // DRAW CONCAVE
-            List<ConcaveHull.Line> concave = ConcaveHull.Hull.GetConcave(points.ToArray(), GlobalRoomData.Get.hullConcavity, GlobalRoomData.Get.hullScale);
-            foreach (var item in concave)
-                Gizmos.DrawLine(new Vector3((float)item.nodes[0].x, -1f, (float)item.nodes[0].y), new Vector3((float)item.nodes[1].x, -1f, (float)item.nodes[1].y));
-
             // DRAW HEX POINTS
-            Gizmos.color = Color.cyan;
-            for (int i = 0; i < data.hexes.Length; i++) {
-                Hex hex = data.hexes[i];
-                Vector3[] ps = hex.GetPositions();
-                for (int j = 0; j < ps.Length; ++j)
-                    Gizmos.DrawSphere(ps[j], 0.1f);
-            }
-
-            // DRAW BRIDGES POINTS
-            for (int lvl = 0; lvl < data.Sides.Length; lvl++) {
-                for (int i = 0; i < data.Sides[lvl].Length; i++) {
-                    Side side = data.Sides[lvl][i];
-                    if (side.bridgeSides == null)
-                        continue;
-
-                    foreach (var part in side.bridgeSides)
-                        part.Draw();
+            if (debugHexes) {
+                Gizmos.color = Color.cyan;
+                for (int i = 0; i < debug_data.hexes.Length; i++) {
+                    Hex hex = debug_data.hexes[i];
+                    Vector3[] ps = hex.GetPositions();
+                    for (int j = 0; j < ps.Length; ++j) {
+                        Gizmos.DrawSphere(ps[j], 0.1f);
+                        Gizmos.DrawLine(ps[j], ps[j + 1 == ps.Length ? 0 : j + 1]);
+                    }
                 }
             }
 
-            foreach (var item in poses) {
-                Gizmos.DrawWireSphere(item, GlobalRoomData.Get.platform_maxRadius);
+
+            if (debugBalconies) {
+                // DRAW BRIDGES POINTS
+                for (int lvl = 1; lvl < debug_data.Sides.Length; lvl++) {
+                    for (int i = 0; i < debug_data.Sides[lvl].Length; i++) {
+                        Side side = debug_data.Sides[lvl][i];
+                        if (!side.balcony) continue;
+
+                        var a = side.GetBalconyPoint(0) + side.BaseBalconyDir * 0.1f;
+                        var b = side.GetBalconyPoint(1) + side.BaseBalconyDir * 0.1f;
+                        Gizmos.color =  Physics.Linecast(a, b) ? Color.red : Color.green;
+                        Gizmos.DrawLine(a, b);
+                    }
+                }
             }
 
-            return;
+            if (debugBridges) {
+                // DRAW BRIDGES POINTS
+                for (int lvl = 0; lvl < debug_data.Sides.Length; lvl++) {
+                    for (int i = 0; i < debug_data.Sides[lvl].Length; i++) {
+                        Side side = debug_data.Sides[lvl][i];
+                        foreach (var bridgeSide in side.bridgeSides) {
+                            bridgeSide.Draw();
+                        }
+                    }
+                }
+            }
+
+
+            if (debug_data.platforms.Count == 0)
+                return;
+
+            if (debugPlatforms) {
+                if (debug_currentPlatformIndex < 0) {
+                    int index = 0;
+                    foreach (var platform in debug_data.platforms) {
+                        DebugPlatform(index, platform);
+                        ++index;
+                    }
+                } else {
+                    debug_currentPlatformIndex = debug_currentPlatformIndex % debug_data.platforms.Count;
+                    DebugPlatform(debug_currentPlatformIndex, debug_data.platforms[debug_currentPlatformIndex]);
+                }
+            }
+            
+        }
+    }
+
+    void DebugPlatform(int index, Platform currentPlatform) {
+        Gizmos.color = Color.yellow;
+       
+        Handles.Label(currentPlatform.origin + Vector3.up * 0.5f, $"{index}");
+        Gizmos.DrawSphere(currentPlatform.origin, 0.2f);
+        if (debugPlatformRadius) {
+            Gizmos.color = Color.gray;
+            Gizmos.DrawWireSphere(currentPlatform.origin, currentPlatform.radius);
+        }
+
+        if (debugPlatformLinks) {
+            foreach (var item in currentPlatform.debug_LinkedPlatforms) {
+                Gizmos.DrawLine(currentPlatform.origin, item);
+            }
+        }
+
+
+        for (int i = 0; i < currentPlatform.bridgeSides.Count; i++) {
+            var brideSide = currentPlatform.bridgeSides[i];
+            int nextIndex = i == currentPlatform.bridgeSides.Count - 1 ? 0 : i + 1;
+            var v1 = currentPlatform.bridgeSides[i].right;
+            var v2 = currentPlatform.bridgeSides[nextIndex].left;
+
+            if (debugPlatformSides) {
+                Gizmos.color = Color.cyan;
+                Gizmos.DrawLine(v1, v2);
+                Gizmos.color = Color.white;
+                Gizmos.DrawLine(currentPlatform.bridgeSides[i].left, currentPlatform.bridgeSides[i].right);
+            }
+
+            if (debugPlatformBridges) {
+                if (brideSide.end != null) {
+                    brideSide.Blocked(brideSide.end, true);
+                } else {
+                    Gizmos.color = Color.red;
+                }
+            }
         }
     }
 }

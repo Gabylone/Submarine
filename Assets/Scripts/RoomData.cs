@@ -4,10 +4,10 @@ using ConcaveHull;
 
 [System.Serializable]
 public class RoomData {
-    public Transform parent;
     public Vector3 origin;
     public Vector3 direction;
 
+    public int seed = 0;
     public int lvls;
     public float size;
     public Hex[] hexes;
@@ -25,9 +25,10 @@ public class RoomData {
         }
     }
 
-
     public void Randomize() {
         GlobalRoomData global = GlobalRoomData.Get;
+
+        Random.InitState(seed);
 
         lvls = Random.Range(global.levelCount.x, global.levelCount.y);
         entranceLevel = Random.Range(0, lvls);
@@ -106,11 +107,20 @@ public class RoomData {
 
                 for (int s = 0; s < 2; s++) {
                     Vector3 p = new Vector3((float)lines[i].nodes[s].x, y, (float)lines[i].nodes[s].y);
-                    newSide.Set(s, p);
+                    newSide.SetBasePoint(s, p);
                 }
 
                 newSide.exit = (Random.value < GlobalRoomData.Get.exitChance) || i == 0 && lvl == entranceLevel;
+
+                // raycast balcony
                 newSide.balcony = (lvl > 0) && (newSide.exit || Random.value < GlobalRoomData.Get.balconyChance);
+                if (newSide.balcony) {
+                    var a = newSide.GetBalconyPoint(0) + newSide.BaseBalconyDir * 0.1f;
+                    var b = newSide.GetBalconyPoint(1) + newSide.BaseBalconyDir * 0.1f;
+                    if (Physics.Linecast(a, b, RoomGenerator.GenLayerMask))
+                        newSide.balcony = false;
+                }
+
 
                 sides[lvl][i] = newSide;
             }
@@ -128,33 +138,53 @@ public class RoomData {
                 Side nSide = sides[lvl][ni];
 
                 // prev
-                Vector3 cV = -cSide.Dir;
-                Vector3 pV = pSide.Dir;
+                Vector3 cV = -cSide.BaseDirection;
+                Vector3 pV = pSide.BaseDirection;
                 float pdot = Vector3.Dot(pV, Vector3.Cross(cV, Vector3.up));
                 Vector3 v1 = Vector3.Lerp(cV, pV, 0.5f).normalized;
                 v1 = pdot > 0 ? -v1 : v1;
 
-                Vector3 iLeft = cSide.Get(0) + (v1 * GlobalRoomData.Get.balconyDepth);
+                Vector3 iLeft = cSide.GetBasePoint(0) + (v1 * GlobalRoomData.Get.balconyDepth);
 
                 // next
-                Vector3 nV = nSide.Dir;
+                Vector3 nV = nSide.BaseDirection;
                 float ndot = Vector3.Dot(nV, Vector3.Cross(cV, Vector3.up));
                 Vector3 v2 = Vector3.Lerp(cV, nV, 0.5f).normalized;
                 v2 = ndot > 0 ? -v2 : v2;
 
-                Vector3 iRight = cSide.Get(1) + (v2 * GlobalRoomData.Get.balconyDepth);
+                Vector3 iRight = cSide.GetBasePoint(1) + (v2 * GlobalRoomData.Get.balconyDepth);
 
-                side.SetInner(0, iLeft);
-                side.SetInner(1, iRight);
+                side.SetBalconyPoint(0, iLeft);
+                side.SetBalconyPoint(1, iRight);
+
+                SetBridgesSides(side);
             }
+        }
+
+        
+    }
+
+    void SetBridgesSides(Side side) {
+        float bridgeWidth = GlobalRoomData.Get.bridgeWidth;
+        float bridgeDecal = GlobalRoomData.Get.decalBetweenBridges;
+        float xpos = bridgeDecal + bridgeWidth / 2f;
+        while (xpos + bridgeWidth / 2F < side.BalconyWidth) {
+            var balconyDir = side.BalconyDirection;
+            var origin = side.GetBalconyPoint(0) + balconyDir * xpos;
+            var left = origin - balconyDir * bridgeWidth / 2F;
+            var right = origin + balconyDir * bridgeWidth / 2F;
+            xpos += bridgeWidth + bridgeDecal;
+
+            var newBridgeSide = new Bridge.Side(left, right);
+            side.AddBridgeSide(newBridgeSide);
         }
     }
 
     public Side GetSide(Vector3 p, int lvl) {
         Side closestSide = Sides[lvl][0];
         foreach (Side side in Sides[lvl]) {
-            float curr = (closestSide.Mid - p).magnitude;
-            float it = (side.Mid - p).magnitude;
+            float curr = (closestSide.BaseMid - p).magnitude;
+            float it = (side.BaseMid - p).magnitude;
 
             if (it < curr) {
                 closestSide = side;

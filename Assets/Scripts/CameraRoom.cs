@@ -111,7 +111,7 @@ public class CameraRoom : MonoBehaviour {
 
         Gizmos.color = color;
 
-        foreach (var item in GetComponentsInChildren<CameraTrigger>()) {
+        foreach (var item in GetComponentsInChildren<CameraGroup>()) {
             Gizmos.DrawLine(item.transform.position, target.position);
         }
 
@@ -126,7 +126,7 @@ public class CameraRoom : MonoBehaviour {
 
         Gizmos.DrawCube(Vector3.zero, new Vector3(0.5f, 0.3f, 0.2f));
 
-        foreach (var item in GetComponentsInChildren<CameraTrigger>()) {
+        foreach (var item in GetComponentsInChildren<CameraGroup>()) {
             Gizmos.matrix = item.transform.localToWorldMatrix;
             Gizmos.DrawCube(Vector3.zero, Vector3.one);
         }
