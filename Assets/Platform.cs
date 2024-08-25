@@ -1,11 +1,19 @@
+using Mono.Cecil.Cil;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
 using System.Xml.Schema;
+using UnityEditor.Build;
+using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Analytics;
 
 [System.Serializable]
 public class Platform {
+    public int id;
     public Vector3 origin;
+    public int _level;
     public float radius;
     public Vector3 hitPoint;
     public List<Bridge.Side> bridgeSides = new List<Bridge.Side>();
@@ -26,72 +34,84 @@ public class Platform {
             return angle;
         }
     }
-
-    public void CreatLinksWithFloor() {
+    public IEnumerator CreateNecessaryLinks() {
         float w = GlobalRoomData.Get.bridgeWidth;
-        RoomData data = RoomManager.Instance.debug_data;
-        int max = 1;
-        for (int i = 0; i < data.Sides[0].Length; i++) {
-            Side side = data.Sides[0][i];
+        RoomData data = RoomManager.Instance._data;
+        for (int j = -1; j < 2; j++) {
+            var lvl = _level + j;
+            if (lvl < 0 || lvl >= data.sides.Length)
+                continue;
+            var bridges = new List<Bridge.Side>();
+            for (int sideIndex = 0; sideIndex < data.sides[lvl].Length; sideIndex++) {
+                Side side = data.sides[lvl][sideIndex];
+                // skip if not floor and no balcony 
+                if (lvl > 0 && !side.balcony) continue;
 
-            for (int b = 0; b < side.bridgeSides.Count; b++) {
+                foreach (var bridge in side.bridgeSides.FindAll(x=>!x.used)) {
+                    var newBridge = CreateNewBridgeSide(bridge.mid);
+                    // check if path is blocked
+                    if (newBridge.Blocked(bridge))
+                        continue;
+                    // check if platform has room for new bridge
+                    if (!CanFitBridgeSide(newBridge))
+                        continue;
 
-                Bridge.Side endSide = side.bridgeSides[b];
-                Bridge.Side startSide = CreateNewBridgeSide(endSide.mid);
-
-                if (startSide.Blocked(endSide))
-                    continue;
-
-                if (!CanFitBridgeSide(startSide))
-                    continue;
-
-
-                startSide.end = endSide;
-                bridgeSides.Add(startSide);
-                --max;
-                break;
-            }
-
-            if (max <= 0)
-                break;
-        }
-    }
-
-    public void CreateLinks_Balconies_Floor() {
-        float w = GlobalRoomData.Get.bridgeWidth;
-
-        RoomData data = RoomManager.Instance.debug_data;
-        List<Bridge.Side> balconySides = new List<Bridge.Side>();
-        for (int lvl = 0; lvl < data.Sides.Length; lvl++) {
-            for (int i = 0; i < data.Sides[lvl].Length; i++) {
-                Side side = data.Sides[lvl][i];
-
-                if (lvl == 0 || side.balcony) {
-                    // floor link
-                    foreach (var bSide in side.bridgeSides)
-                        balconySides.AddRange(side.bridgeSides.FindAll(x => !x.used && Vector3.Distance(x.mid, origin) < GlobalRoomData.Get.platform_maxDis));
+                    // generate link
+                    newBridge.end = bridge;
+                    bridgeSides.Add(newBridge);
+                    yield return new WaitForEndOfFrame();
+                    goto NextLevel;
                 }
             }
+            NextLevel:
+            continue;
         }
 
-        if (balconySides.Count <= 0)
-            return;
+    }
 
-        while (balconySides.Count > 0) {
-            int i = Random.Range(0, balconySides.Count);
-            Bridge.Side balconySide = balconySides[i];
+    public IEnumerator CreateLinks_Balconies_Floor() {
+        float w = GlobalRoomData.Get.bridgeWidth;
+        RoomData data = RoomManager.Instance._data;
+        List<List<Bridge.Side>> bridges = new List<List<Bridge.Side>>();
+        for (int lvl = 0; lvl < data.sides.Length; lvl++) {
+            bridges.Add(new List<Bridge.Side>());
+            for (int i = 0; i < data.sides[lvl].Length; i++) {
+                Side side = data.sides[lvl][i];
+                if ( lvl>0 && !side.balcony) continue;
+                bridges[lvl].AddRange(side.bridgeSides.FindAll(x => (x.mid - origin).magnitude < 10f));
+            }
+        }
+        int c = bridges.RemoveAll(x => x.Count == 0);
+        int safe = 1000;
+        int lvlIndex = 0;
+        while (bridges.Count > 0) {
+            --safe;
+            if (safe <= 0) {
+                Debug.LogError($"SAFE");
+                break;
+            }
+            int bridgeIndex = Random.Range(0, bridges[lvlIndex].Count);
+            Bridge.Side balconySide = bridges[lvlIndex][bridgeIndex];
+            /// loop through
+            bridges[lvlIndex].RemoveAt(bridgeIndex);
+            if (bridges[lvlIndex].Count == 0) {
+                bridges.RemoveAt(lvlIndex);
+                if (bridges.Count == 0)
+                    break;
+                lvlIndex = lvlIndex % bridges.Count;
+            }
 
-            balconySides.RemoveAt(i);
-
-            Bridge.Side platformBridgeSide = CreateNewBridgeSide(balconySide.mid);
-
-            if (platformBridgeSide.Blocked(balconySide))
+            Bridge.Side newBridge = CreateNewBridgeSide(balconySide.mid);
+            if (newBridge.Blocked(balconySide) || !CanFitBridgeSide(newBridge))
                 continue;
 
-            if (!CanFitBridgeSide(platformBridgeSide))
-                continue;
-            platformBridgeSide.end = balconySide;
-            bridgeSides.Add(platformBridgeSide);
+            // generate link
+            newBridge.end = balconySide;
+            bridgeSides.Add(newBridge);
+
+            // loop through levels
+            lvlIndex = (lvlIndex + 1)%bridges.Count;
+            yield return new WaitForEndOfFrame();
         }
     }
 
@@ -140,9 +160,9 @@ public class Platform {
 
         float w = GlobalRoomData.Get.bridgeWidth;
         Vector3 normal = Vector3.Cross(dir, Vector3.up).normalized;
-        Vector3 decal = (dir.normalized * radius);
-        Vector3 left = origin + decal + (normal * w / 2f);
-        Vector3 right = origin + decal - (normal * w / 2f);
+        Vector3 mid = (dir.normalized * radius);
+        Vector3 left = origin + mid + (normal * w / 2f);
+        Vector3 right = origin + mid - (normal * w / 2f);
         return new Bridge.Side(left, right);
     }
 
@@ -161,50 +181,17 @@ public class Platform {
     }
 
     public void HandleLonely() {
-        if (bridgeSides.Count == 1) {
-            Debug.Log($"handled loney");
-            Bridge.Side s = bridgeSides[0];
-            //CreateNewBridgeSide(origin - (s.mid-origin), Vector3.forward);
-        }
-    }
 
-    public void RemoveDuplicateBridges() {
-        for (int i = 0; i < bridgeSides.Count; i++) {
-            Bridge.Side bs1 = bridgeSides[i];
 
-            for (int j = i + 1; j < bridgeSides.Count; j++) {
-                Bridge.Side bs2 = bridgeSides[j];
-
-                Vector3 dir1 = bs1.mid - origin;
-                Vector3 dir2 = bs2.mid - origin;
-
-                if (Vector3.Angle(dir1, dir2) < Angle) {
-                    if (bs1.link && bs2.link) {
-                        if (bs1.end == null || bs2.end == null)
-                            continue;
-                        float d1 = Vector3.Distance(bs1.mid, bs1.end.mid);
-                        float d2 = Vector3.Distance(bs1.mid, bs2.end.mid);
-                        if (d1 < d2)
-                            bs2.valid = false;
-                        else
-                            bs1.valid = false;
-                    } else {
-                        if (bs2.link)
-                            bs1.valid = false;
-                        else
-                            bs2.valid = false;
-                    }
-                }
-
-            }
-        }
-
-        for (int i = bridgeSides.Count - 1; i >= 0; i--) {
-            if (!bridgeSides[i].valid) {
-                // si t'as pas vu ça pendant un moment c'ets que la fonction sert à r
-                Debug.LogError($"removed invalid bridge");
-                bridgeSides.RemoveAt(i);
-            }
+        switch (bridgeSides.Count) {
+            case 0:
+                Debug.Log($"NO LINK : {id}");
+                break;
+            case 1:
+                Debug.Log($"Only 1 Link : {id}");
+                break;
+            default:
+                break;
         }
     }
 
@@ -328,15 +315,21 @@ public class Platform {
         meshFilter.GetComponentInChildren<MeshCollider>().sharedMesh = meshFilter.mesh;
     }
 
-    public void buildRamps() {
-        foreach (var item in bridgeSides) {
-            if (!item.used) {
+    public void BuildRamps() {
+        foreach (var bridgeSide in bridgeSides) {
+            if (!bridgeSide.used) {
                 // create platform ramp
-                Case.NewRamp(item.left, item.right);
+                Case.NewRamp(bridgeSide.left, bridgeSide.right);
             } else {
+                if (!bridgeSide.buildRamp)
+                    continue;
+                if ( bridgeSide.end == null) {
+                    Debug.LogError($"empty bridge : {id}");
+                    continue;
+                }
                 // create bridge ramp
-                Case.NewRamp(item.left, item.end.right);
-                Case.NewRamp(item.right, item.end.left);
+                Case.NewRamp(bridgeSide.left, bridgeSide.end.right);
+                Case.NewRamp(bridgeSide.right, bridgeSide.end.left);
             }
         }
 
@@ -351,5 +344,74 @@ public class Platform {
 
         Case.NewRamp(o, bridgeSides[0].left);
 
+    }
+
+    public void GizmosLinks() {
+        float w = GlobalRoomData.Get.bridgeWidth;
+        RoomData data = RoomManager.Instance._data;
+        // bridges per level
+        List<List<Bridge.Side>> bridges = new List<List<Bridge.Side>>();
+        for (int lvl = 0; lvl < data.sides.Length; lvl++) {
+            bridges.Add(new List<Bridge.Side>());
+            for (int i = 0; i < data.sides[lvl].Length; i++) {
+                Side side = data.sides[lvl][i];
+                if (lvl > 0 && !side.balcony) continue;
+                bridges[lvl].AddRange(side.bridgeSides.FindAll(x => (x.mid - origin).magnitude < 10f));
+            }
+        }
+
+        // remove empty levels 
+        int c = bridges.RemoveAll(x => x.Count == 0);
+
+        // jic
+        int safe = 1000;
+        int lvlIndex = 0;
+        while (bridges.Count > 0) {
+            --safe;
+            if (safe <= 0) {
+                Debug.LogError($"SAFE");
+                break;
+            }
+            int bridgeIndex = Random.Range(0, bridges[lvlIndex].Count);
+            Bridge.Side balconySide = bridges[lvlIndex][bridgeIndex];
+
+            /// loop through
+            bridges[lvlIndex].RemoveAt(bridgeIndex);
+            if (bridges[lvlIndex].Count == 0) {
+                bridges.RemoveAt(lvlIndex);
+                if (bridges.Count == 0)
+                    break;
+                lvlIndex = lvlIndex % bridges.Count;
+            }
+
+            Bridge.Side newBridge = CreateNewBridgeSide(balconySide.mid);
+            
+
+            // check if path is blocked
+            if (newBridge.Blocked(balconySide)) {
+                if (!RoomManager.Instance.debugBlockedBalconies)
+                    continue;
+                Gizmos.color = Color.red;
+            } else if (!CanFitBridgeSide(newBridge)) {
+                if (!RoomManager.Instance.debugInvalidBalconies)
+                    continue;
+                Gizmos.color = Color.yellow;
+            } else {
+                if (!RoomManager.Instance.debugValidBalconies)
+                    continue;
+                Gizmos.color = Color.green;
+            }
+
+            // check if platform has room for new bridge
+            Gizmos.DrawSphere(balconySide.right, 0.1f);
+            Gizmos.DrawSphere(balconySide.left, 0.1f);
+            Gizmos.DrawSphere(newBridge.right, 0.1f);
+            Gizmos.DrawSphere(newBridge.left, 0.1f);
+            Gizmos.DrawLine(newBridge.right, balconySide.left);
+            Gizmos.DrawLine(newBridge.left, balconySide.right);
+
+            // loop through levels
+            lvlIndex = (lvlIndex + 1) % bridges.Count;
+        }
     }
 }

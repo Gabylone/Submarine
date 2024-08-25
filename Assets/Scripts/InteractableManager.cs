@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class InteractableManager : MonoBehaviour {
     public static InteractableManager Instance;
@@ -15,8 +16,11 @@ public class InteractableManager : MonoBehaviour {
 
     public bool interacting = false;
 
+    bool someSelected = false;
+
     private void Update() {
         if (Interactables.Count > 0) {
+            someSelected = true;
             Interactable closest = Interactables[0];
 
             for (int i = 1; i < Interactables.Count; i++) {
@@ -30,13 +34,20 @@ public class InteractableManager : MonoBehaviour {
 
             if (!closest.selected) {
                 if (previous != null) {
-                    previous.Deselect();
+                    previous.Selected_Exit();
                 }
 
                 current = closest;
                 previous = current;
 
-                closest.Select();
+                closest.Selected_Start();
+            }
+        } else {
+            if (someSelected) {
+                someSelected = false;
+                IKManager.Instance.Stop(IKParam.Type.Head);
+                IKManager.Instance.Stop(IKParam.Type.LeftHand);
+                IKManager.Instance.Stop(IKParam.Type.RightHand);
             }
         }
     }

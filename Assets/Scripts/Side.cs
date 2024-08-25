@@ -9,9 +9,7 @@ public class Side {
     private Vector3[] _basePoints = new Vector3[2];
     private Vector3[] _balconyPoints = new Vector3[2];
     public List<Bridge.Side> bridgeSides = new List<Bridge.Side>();
-    public void AddBridgeSide(Bridge.Side bo) {
-        bridgeSides.Add(bo);
-    }
+    
 
     public Vector3 GetBasePoint(int i) {
         return _basePoints[i];

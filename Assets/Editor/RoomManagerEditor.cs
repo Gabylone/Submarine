@@ -7,12 +7,7 @@ public class RoomManagerEditor : Editor {
         RoomManager rm = (RoomManager)target;
 
         if (GUILayout.Button("randomize room data")) {
-            rm.debug_data.Randomize();
-        }
-
-        if (GUILayout.Button("Clear Pool")) {
-            PoolManager poolManager = FindObjectOfType<PoolManager>();
-            poolManager.DebugClear();
+            rm._data.Generate();
         }
 
         base.OnInspectorGUI();

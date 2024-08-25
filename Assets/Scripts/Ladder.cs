@@ -58,7 +58,13 @@ public class Ladder : Interactable {
     public float exit_RaycastDistance = 2f;
     public Vector3 exit_Decal;
     public LayerMask exit_LayerMask;
+    private float exit_CurrentBodyRotation = 0f;
+    public float exit_TargetBodyRotation = 90f;
+    public float exit_SpeedBodyRotation = 5f;
     public GameObject[] exit_Feedbacks;
+    public Vector3 exitDecal_Up;
+    public float exit_UpBuffer = 1.58f;
+    public Vector3 exitDecal_Down;
 
     [Space]
     [Header("Lerp")]
@@ -77,7 +83,9 @@ public class Ladder : Interactable {
 
     public override void Start() {
         base.Start();
-        Init(debug_anchors.ToList().Select(x => x.position).ToArray());
+        if (debug_Ladder) {
+            Init(debug_anchors.ToList().Select(x => x.position).ToArray()); 
+        }
 
     }
 
@@ -138,12 +146,13 @@ public class Ladder : Interactable {
         }
 
         float h = MidDir.magnitude + 2f;
-        float w = (positions[1] - positions[0]).magnitude + 1f;
+        float w = (positions[1] - positions[0]).magnitude +3f;
         var bottomNormal = Vector3.Cross(MidDir.normalized, (positions[1] - positions[0]).normalized);
         var sidePos = positions[0] + (positions[1] - positions[0]) / 2f;
         var forPos = bottomNormal * 1f;
         var upPos = MidDir.normalized * (h / 2f);
 
+        exit_CurrentBodyRotation = 0f;
 
         var pos = sidePos + upPos + forPos;
         Interactable_Trigger.transform.position = pos;
@@ -161,6 +170,7 @@ public class Ladder : Interactable {
             Vector3 v = Vector3.Lerp(Player.Instance.GetTransform.position, landAnchor.position, lerp);
             Player.Instance.GetTransform.position = v;
             Player.Instance.Body.rotation = Quaternion.Lerp(Player.Instance.Body.rotation, landAnchor.rotation, lerp);
+
         }
     }
 
@@ -183,8 +193,11 @@ public class Ladder : Interactable {
             ik_indexes[i] = 0;
         }
 
+        base.Interact_Start();
+        Player.Instance.DisableGravity();
+        IKManager.Instance.StopAll();
         currentY = Vector3.Distance(ladderSteps[GetClosestStep(Player.Instance.GetTransform.position)].position, BottomMid);
-
+        ik_Current = ik_Rate + 1f;
         for (int i = 0; i < 2; i++)
             UpdateDecalIKs();
 
@@ -204,24 +217,24 @@ public class Ladder : Interactable {
 
         //Player.Instance.GetTransform.DOMove(ladderSteps[startIndex].position + GetTransform.forward * player_DecalToLadder.z + GetTransform.up * player_DecalToLadder.y, 0.2f);
 
-        base.Interact_Start();
     }
 
 
     public override void Interact_Update() {
         base.Interact_Update();
-        UpdateExit();
         if (!canMove)
             return;
 
         UpdateRotation();
         UpdateMovement();
+        //UpdateExit();
     }
 
     void UpdateRotation() {
         lerp = currentY / (TopMid - BottomMid).magnitude;
         var normal = Vector3.Cross(MidDir.normalized, CurrSideDir.normalized);
         Quaternion q = Quaternion.LookRotation(-normal, MidDir.normalized);
+        q *= Quaternion.Euler(0, exit_CurrentBodyRotation, 0);
         player_anchor.rotation = q;
         Player.Instance.Body.rotation = Quaternion.Lerp(Player.Instance.Body.rotation, q, player_LerpToPositionSpeed * Time.deltaTime); ;
     }
@@ -235,13 +248,11 @@ public class Ladder : Interactable {
         }
 
         var UpDir = (TopMid - BottomMid);
+        maxY = UpDir.magnitude;
         if (moveTimer > 0) {
             moveTimer -= Time.deltaTime;
         } else {
             currentY += input * player_ClimbSpeed * Time.deltaTime;
-            maxY = UpDir.magnitude;
-
-            currentY = Mathf.Clamp(currentY, 0, maxY - 2);
 
             ik_Current += Mathf.Abs(input) * player_ClimbSpeed * Time.deltaTime;
             if (ik_Current > ik_Rate) {
@@ -250,6 +261,33 @@ public class Ladder : Interactable {
             }
         }
 
+
+        // update exit
+        if ( direction == Direction.Up) {
+            RaycastHit upHit;
+            bool exitUp = Physics.Raycast(Player.Instance.GetTransform.position + player_anchor.TransformDirection(exitDecal_Up), -Vector3.up, out upHit, exit_RaycastDistance, exit_LayerMask);
+            exit_Feedbacks[0].SetActive(exitUp);
+            if (exitUp)
+                exit_Feedbacks[0].transform.position = upHit.point;
+            if ( currentY >= maxY - exit_UpBuffer) {
+                ExitLadder(upHit.point);
+                Debug.Log("exit up");
+            }
+        }
+
+        if ( direction == Direction.Down) {
+            RaycastHit downHit;
+            bool exitDown = Physics.Raycast(Player.Instance.GetTransform.position + player_anchor.TransformDirection(exitDecal_Down), -Vector3.up, out downHit, exit_RaycastDistance, exit_LayerMask);
+            exit_Feedbacks[1].SetActive(exitDown);
+            if (exitDown)
+                exit_Feedbacks[1].transform.position = downHit.point;
+            if ( currentY <= 0) {
+                ExitLadder(downHit.point);
+                Debug.Log($"exit down");
+            }
+        }
+
+        // position
         Vector3 p = BottomMid + UpDir.normalized * (currentY+ player_DecalToLadder.y) + player_anchor.forward * player_DecalToLadder.z;
         p = Vector3.Lerp(Player.Instance.GetTransform.position, p, player_LerpToPositionSpeed * Time.deltaTime);
         Player.Instance.GetTransform.position = p;
@@ -351,17 +389,20 @@ public class Ladder : Interactable {
                 IKParam.Type ikType = way < 0 ? IKParam.Type.LeftHand: IKParam.Type.RightHand;
                 if (pressingInput) {
                     if (!raisingHand[index]) {
+                        exit_CurrentBodyRotation = Mathf.Lerp(exit_CurrentBodyRotation, exit_TargetBodyRotation * way, exit_SpeedBodyRotation * Time.deltaTime);
                         raisingHand[index] = true;
                         IKManager.Instance.SetTarget(ikType, exit_Feedback.transform);
+                        IKManager.Instance.SetTarget(IKParam.Type.Head, exit_Feedback.transform);
                     }
                     if (ExitInput())
                         ExitLadder(hit.point);
                 } else if (raisingHand[index]) {
                     IKManager.Instance.SetTarget(ikType, GetAnchor(ikType));
                     raisingHand[index] = false;
+                    exit_CurrentBodyRotation = Mathf.Lerp(exit_CurrentBodyRotation, 0f, exit_SpeedBodyRotation * Time.deltaTime);
+                    IKManager.Instance.Stop(IKParam.Type.Head);
                 }
 
-                
             } else {
                 Debug.DrawRay(ray.origin, ray.direction * exit_RaycastDistance, Color.red);
                 exit_Feedbacks[index].SetActive(false);
@@ -398,6 +439,7 @@ public class Ladder : Interactable {
         lerping = false;
 
         Player.Instance.EnableMovements();
+        Player.Instance.EnableGravity();
 
         //Player.Instance.GetComponent<Rigidbody>().useGravity = true;
     }
@@ -427,7 +469,19 @@ public class Ladder : Interactable {
     private Vector3 Normal => Vector3.Cross(MidDir.normalized, CurrSideDir.normalized);
 
     private void OnDrawGizmos() {
-        if (positions.Length == 0 || !debug_Ladder)
+
+        if (positions.Length == 0 || (RoomManager.Instance != null &&!RoomManager.Instance.debugLadders))
+            return;
+
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawSphere(positions[0], 0.2f);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawSphere(positions[1], 0.2f);
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(positions[2], 0.2f);
+        Gizmos.DrawSphere(positions[3], 0.2f);
+
+        if (!debug_Ladder)
             return;
 
         Gizmos.matrix = Matrix4x4.identity;

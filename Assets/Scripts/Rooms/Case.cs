@@ -1,3 +1,4 @@
+using Mono.Cecil.Cil;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
@@ -32,12 +33,19 @@ public static class Case {
                         tW = (tW / 2f) - (global.doorScale.x / 2);
                         var entranceSide = side.BaseDirection * ((tW / 2f) + (global.doorScale.x / 2f));
                         tPos = tPos + (j==0 ? -entranceSide : entranceSide);
-                        break;
+
+                                                break;
                     case 1:
                         // entrance top
                         tW = global.doorScale.x;
                         tH = height - global.doorScale.y;
                         tPos.y += (global.doorScale.y / 2f);
+
+                        // next room trigger
+                        var nextRoomTrigger = PoolManager.Instance.RequestObject("next room trigger");
+                        nextRoomTrigger.position = pos - Vector3.up * (global.doorScale.y) ;
+                        nextRoomTrigger.localScale = new Vector3(tW, global.doorScale.y, depth);
+                        nextRoomTrigger.right = -side.BaseDirection;
                         break;
                     default:
                         break;
@@ -171,7 +179,7 @@ public static class Case {
         // RAMPS AND BRIDGES
         float rWidth = GlobalRoomData.Get.rampWidth;
 
-        int l = data.Sides[0].Length;
+        int l = data.sides[0].Length;
 
         // side ramps
         for (int i = 0; i < 2; ++i) {
@@ -184,12 +192,7 @@ public static class Case {
             sideRamp.localScale = new Vector3(rWidth, sideRampHeight, rWidth);
         }
 
-        if (!data.Sides[side.lvl][(side.id + 1) % l].balcony)
-            NewRamp(side.GetBalconyPoint(1), side.GetBasePoint(1));
-
-        int pi = side.id == 0 ? l - 1 : side.id - 1;
-        if (!data.Sides[side.lvl][pi].balcony)
-            NewRamp(side.GetBalconyPoint(0), side.GetBasePoint(0));
+        
     }
 
 

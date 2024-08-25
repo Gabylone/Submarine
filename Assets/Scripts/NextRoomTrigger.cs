@@ -1,13 +1,9 @@
 using UnityEngine;
 
 public class NextRoomTrigger : MonoBehaviour {
-    // Start is called before the first frame update
-    void Start() {
-
-    }
-
-    // Update is called once per frame
-    void Update() {
-
+   
+    public void GenerateNextRoom() {
+        Debug.Log($"making next room");
+        RoomManager.Instance.GenerateNewRoom(transform.position + transform.forward *1f, transform.forward, 1);
     }
 }

@@ -34,7 +34,8 @@ MonoBehaviour:
   rampHeight: 1
   angleToStairs: 30
   angleToLadder: 70
-  stairWidth: 0.2
+  stairWidth: 0.4
+  ladderWidth: 0.5
   bridgeWidth: 1.5
   bridgeHeight: 1
   bridgeSideBuffer: 0.05

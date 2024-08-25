@@ -44,26 +44,48 @@ public class Interactable : MonoBehaviour {
         }
 
         if (selected) {
-            UpdateSelect();
+            Selected_Update();
         }
     }
 
     #region selection
-    public void Select() {
+    public void Selected_Start() {
         selected = true;
         EnableOutline();
+        
+
+        IKManager.Instance.SetTarget(IKParam.Type.Head, transform);
 
     }
 
-    public void UpdateSelect() {
+    bool rightHand = false;
+    bool leftHand = false;
+    public void Selected_Update() {
         UpdateOutline();
 
-        if (Input.GetButtonDown("Interact")) {
+        /*var dir = transform.position - Player.Instance.GetTransform.position;
+        var dot = Vector3.Dot(dir.normalized, Player.Instance.Body.right);
+        if( dot > 0) {
+            leftHand = false;
+            if (!rightHand) {
+                rightHand = true;
+                IKManager.Instance.SetTarget(IKParam.Type.RightHand, Interactable_Trigger.transform);
+                IKManager.Instance.Stop(IKParam.Type.LeftHand);
+            }
+        } else {
+            rightHand = false;
+            if (!leftHand) {
+                leftHand = true;
+                IKManager.Instance.SetTarget(IKParam.Type.RightHand, Interactable_Trigger.transform);
+                IKManager.Instance.Stop(IKParam.Type.LeftHand);
+            }
+        }*/
+
+        if (Input.GetButtonDown("Interact"))
             Interact_Start();
-        }
     }
 
-    public void Deselect() {
+    public void Selected_Exit() {
         selected = false;
         DisableOutline();
 
@@ -72,7 +94,7 @@ public class Interactable : MonoBehaviour {
 
     #region states
     public virtual void Interact_Start() {
-        Deselect();
+        Selected_Exit();
 
         interacting = true;
         InteractableManager.Instance.interacting = true;

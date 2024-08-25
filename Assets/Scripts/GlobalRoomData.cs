@@ -47,6 +47,7 @@ public class GlobalRoomData : ScriptableObject {
     public float angleToStairs;
     public float angleToLadder;
     public float stairWidth;
+    public float ladderWidth;
 
     [Header("BRIDGE")]
     public float bridgeWidth;

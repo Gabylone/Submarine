@@ -1,15 +1,20 @@
+using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 [System.Serializable]
 public struct Bridge {
     public class Side {
         public Color color = Color.white;
-        public bool valid = true;
+        public bool buildRamp = true;
         public Side end;
+        public int place;
         public bool link = false;
         public bool used = false;
         public bool blocked = false;
         public Transform parent;
+        public LayerMask GenLayerMask = LayerMask.GetMask("Wall", "Floor", "Bridge");
 
         public Side(Vector3 left, Vector3 right) {
             this.left = left;
@@ -97,7 +102,7 @@ public struct Bridge {
                 }
 
                 RaycastHit hit;
-                bool cast = Physics.Linecast(a, b, out hit, RoomGenerator.GenLayerMask);
+                bool cast = Physics.Linecast(a, b, out hit, RoomManager.Instance.layerMask);
                 if (cast)
                     block = true;
                 if (debug) {
@@ -112,12 +117,9 @@ public struct Bridge {
                     }
                 }
             }
-
-           
-
             return block;
         }
-        static Transform Parent;
+        public static Transform Parent;
         public void Build() {
             if (end == null || end.used || used)
                 return;
@@ -125,6 +127,7 @@ public struct Bridge {
             if (Parent == null) {
                 Parent = new GameObject().transform;
                 Parent.name = "Bridges";
+                Parent.SetParent(PoolManager.Instance.currentGroup.parent);
             }
 
             parent = new GameObject().transform;
@@ -144,7 +147,7 @@ public struct Bridge {
             //Vector3 scale = new Vector3(w, checkHeight, tmpDir.magnitude);
             Vector3 scale = new Vector3(checkHeight, checkHeight, tmpDir.magnitude);
             Quaternion orientation = Quaternion.LookRotation(dir);
-            blocked = Physics.CheckBox(pos, scale / 2f, orientation, RoomGenerator.GenLayerMask);
+            blocked = Physics.CheckBox(pos, scale / 2f, orientation, RoomManager.Instance.layerMask);
 
             /*if (blocked) {
                 Debug.Log($"blocked? ");
@@ -162,24 +165,31 @@ public struct Bridge {
             // check ladder angle
             if (angle > GlobalRoomData.Get.angleToLadder) {
                 var ladder = PoolManager.Instance.RequestObject("ladder", parent).GetComponent<Ladder>();
+                var ladderWidth = GlobalRoomData.Get.ladderWidth;
 
-                var positions = new Vector3[4] {
-                    end.right,
-                    end.left,
-                    left,
-                    right,
+                buildRamp = false;
 
+                var positions = new List<Vector3>() {
+                    end.mid - end.sdir * ladderWidth,
+                    end.mid + end.sdir * ladderWidth,
+                    mid + sdir * ladderWidth,
+                    mid - sdir * ladderWidth
                 };
-                if ( end.right.y > right.y) {
-                    positions = new Vector3[4] {
-                        left,
-                        right,
-                        end.right,
-                        end.left,
-                    };
+                if (end.right.y > right.y) {
+                    positions.Reverse();
+                    positions[2] += dir;
+                    positions[3] += dir;
+                } else {
+                    positions[2] -= dir;
+                    positions[3] -= dir;
                 }
 
-                ladder.Init(positions);
+                /*if (Physics.Linecast(positions[0], positions[2], RoomManager.Instance.GenLayerMask))
+                    return;
+                if (Physics.Linecast(positions[1], positions[3], RoomManager.Instance.GenLayerMask))
+                    return;*/
+
+                ladder.Init(positions.ToArray());
                 return;
             } else {
                 Transform bridge_Tr = PoolManager.Instance.RequestObject("bridge", parent);
@@ -216,47 +226,20 @@ public struct Bridge {
                         stairStep.right = (stair_Left - stair_Right).normalized;
                         stairStep.localScale = new Vector3((stair_Left - stair_Right).magnitude, stairWidth, stairWidth);
                     }
+                    bridge_Tr.GetComponentInChildren<MeshRenderer>().enabled = false;
                 }
             }
         }
 
-        public void Draw() {
-            //Gizmos.color = used ? Color.green: Color.yellow;
-            Gizmos.color = color;
+        public void Draw(Color c) {
+            if ( c == Color.white) {
+                Gizmos.color = used ? Color.yellow : Color.green;
+            } else {
+                Gizmos.color = c;
+            }
             Gizmos.DrawLine(left, right);
             Gizmos.DrawSphere(left, 0.1f);
-            if (end != null) {
-                // debug check box 
-                float checkHeight = 1.5f;
-                float dot = Vector3.Dot(normal, dir.normalized);
-                float r = sdir.magnitude * dot;
-                Vector3 check_start = mid + (dir.normalized * ((r / 2f) + (1 - dot)));
-                Vector3 check_end = end.mid - (dir.normalized * ((r / 2f) + (1 - dot)));
-                Vector3 tmpDir = (check_end - check_start);
-                Vector3 pos = check_start + tmpDir / 2f;
-                float w = sdir.magnitude * dot;
-                Vector3 scale = new Vector3(w, checkHeight, tmpDir.magnitude);
-                Quaternion orientation = Quaternion.LookRotation(dir);
-                bool _blocked = Physics.CheckBox(pos, scale / 2f, orientation, RoomGenerator.GenLayerMask);
-                Gizmos.color = blocked ? Color.red : Color.green;
-                Gizmos.matrix = Matrix4x4.TRS(pos, orientation, Vector3.one);
-                Gizmos.DrawWireCube(Vector3.zero, scale);
-                Gizmos.matrix = Matrix4x4.identity;
-
-            }
-            return;
-            if (end != null) {
-                Gizmos.color = Color.green;
-                Gizmos.DrawLine(left, right);
-                Gizmos.DrawSphere(left, 0.1f);
-
-
-            } else {
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawLine(left - Vector3.up * 0.1f, right - Vector3.up * 0.1f);
-                Gizmos.DrawSphere(left - Vector3.up * 0.1f, 0.1f);
-            }
-
+            Handles.Label(mid,  $"{place}");
         }
 
         public Vector3 normal {

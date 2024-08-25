@@ -926,8 +926,8 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8485445815179535899}
-  m_LocalRotation: {x: -0.025351375, y: 0.96928334, z: 0.2355965, w: 0.06588917}
-  m_LocalPosition: {x: -1.23, y: 0.04, z: -0.49}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -938,7 +938,7 @@ Transform:
   - {fileID: 2298047363420544474}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: -27.391, y: 172.507, z: -1.168}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!82 &8485445815179535898
 AudioSource:
   m_ObjectHideFlags: 0
@@ -1062,6 +1062,7 @@ MonoBehaviour:
   currentY: 0
   maxY: 0
   player_DecalToLadder: {x: 0, y: 0, z: -0.5}
+  debug_Ladder: 0
   ladderSteps: []
   ladder_SpaceBetweenSteps: 0.14
   ladderSide_Width: 0.05
@@ -1074,7 +1075,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 3a8db7c9f98fe144f81091bf12bc47aa, type: 3}
   steps_Source: {fileID: 8485445815179535898}
   ik_indexes: 00000000000000000000000000000000
-  ik_decalToStep: {x: -0.25, y: 0.05, z: 0.2}
+  ik_decalToStep: {x: 0.25, y: 0.05, z: 0}
   upDecal: 1
   ik_Rate: 0.7
   ik_Switch: 0
@@ -1085,14 +1086,19 @@ MonoBehaviour:
   - 1
   - 0.15
   lerp: 0
-  exit_RaycastDistance: 3
-  exit_Decal: {x: 1.66, y: 1.34, z: -1.94}
+  exit_RaycastDistance: 2
+  exit_Decal: {x: 1, y: 2, z: 0}
   exit_LayerMask:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 2560
+  exit_TargetBodyRotation: 30
+  exit_SpeedBodyRotation: 100
   exit_Feedbacks:
   - {fileID: 8485445814103094338}
   - {fileID: 5297231144447603889}
+  exitDecal_Up: {x: 0, y: 1.5, z: 1}
+  exit_UpBuffer: 1.58
+  exitDecal_Down: {x: 0, y: 1, z: -1}
   lerpDuration: 0.35
   landAnchor: {fileID: 8485445814103094336}
   moveRate: 0.3

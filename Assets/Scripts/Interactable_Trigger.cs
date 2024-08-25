@@ -12,7 +12,7 @@ public class Interactable_Trigger : MonoBehaviour {
             if (timer >= 0) {
                 timer -= Time.deltaTime;
             } else {
-                linkedInteractable.Deselect();
+                linkedInteractable.Selected_Exit();
                 InteractableManager.Instance.RemoveInteractable(linkedInteractable);
                 added = false;
             }
@@ -22,7 +22,7 @@ public class Interactable_Trigger : MonoBehaviour {
     private void OnTriggerStay(Collider other) {
         if (linkedInteractable.interacting || InteractableManager.Instance.interacting) {
             if (added) {
-                linkedInteractable.Deselect();
+                linkedInteractable.Selected_Exit();
                 InteractableManager.Instance.RemoveInteractable(linkedInteractable);
                 added = false;
             }

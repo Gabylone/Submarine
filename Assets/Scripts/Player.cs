@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.Rendering.PostProcessing;
 
 public class Player : MonoBehaviour {
-
+    List<Vector3> debugoses = new List<Vector3>();
     /// <summary>
     /// SINGLETON
     /// </summary>
@@ -32,7 +33,6 @@ public class Player : MonoBehaviour {
     /// COMPONENTS
     /// </summary>
     private Animator _animator;
-    private BoxCollider _boxCollider;
     private Transform _transform;
     private Transform turn_anchor;
 
@@ -41,14 +41,37 @@ public class Player : MonoBehaviour {
     /// </summary>
     [Header("Movement")]
     [Space]
-    public float maxSpeed = 3f;
+    public float currentMaxSpeed = 3f;
+    public float flatMaxSpeed = 3f;
+    public float climbMaxSpeed = 0f;
     public float acceleration = 0.5f;
+
     public float decceleration = 0.5f;
     private float _speed;
     private bool _canMove = true;
 
     public float deltaSpeed = 0f;
     public Vector3 previousPos;
+
+    [Header("Ground Detection")]
+    public Vector3 grounded_DetectionDecal;
+    public float grounded_Distance = 1f;
+    [Range(-1, 1)]
+    public float grounded_Dot = 0f;
+    public float grounded_MinAngle = 0.5f;
+    [Range(0, 1)]
+    public float testlerp = 0f;
+    public float grounded_MaxDot = 0.8f;
+    public float grounded_MinClimbSpeed = 1f;
+    public LayerMask grounded_LayerMask;
+    public bool isGrounded;
+
+    [Header("Gravity")]
+    public bool enableGravity = true;
+    public float gravity_SpeedToGround = 1f;
+    public float gravity_CurrentSpeed = 0f;
+    public float gravity_Acceleration;
+    public Vector2 gravity_SpeedRange;
 
     /// <summary>
     /// TURN
@@ -84,7 +107,6 @@ public class Player : MonoBehaviour {
     #region constructors
     // Start is called before the first frame update
     void Start() {
-        _boxCollider = GetComponent<BoxCollider>();
         SetRagdoll(false);
 
         characterCustomization.Randomize();
@@ -97,21 +119,11 @@ public class Player : MonoBehaviour {
         }
     }
 
-    private void OnAnimatorIK(int layerIndex) {
-        Debug.Log($"test ?");
-        GetAnimator.SetIKPosition(AvatarIKGoal.LeftHand, Vector3.zero);
-        GetAnimator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1f);
-    }
-
     // Update is called once per frame
     void Update() {
         UpdateAnimation();
 
-        if (_canMove) {
-            UpdateMovement();
-        } else {
-            _speed = Mathf.Lerp(_speed, 0f, decceleration * Time.deltaTime);
-        }
+        UpdateMovement();
 
         if (Input.GetKeyDown(KeyCode.L)) {
             ragdoll = !ragdoll;
@@ -149,17 +161,20 @@ public class Player : MonoBehaviour {
         deltaSpeed = Mathf.Clamp01(deltaSpeed);
 
         //float _animationDelta = (_speed / maxSpeed) * deltaSpeed;
-        float _animationDelta = (_speed / maxSpeed);
+        float _animationDelta = (_speed / currentMaxSpeed);
         GetAnimator.SetFloat("movement", _animationDelta);
-
 
         // update rotation
         turn_anchor.position = GetTransform.position;
-
-        GetComponent<Rigidbody>().velocity = Vector3.zero;
     }
 
     void UpdateMovement() {
+
+        if (!_canMove) {
+            _speed = Mathf.Lerp(_speed, 0f, decceleration * Time.deltaTime);
+            return;
+        }
+
         Vector3 inputDir = new Vector3(Input.GetAxis("Horizontal"), 0f, Input.GetAxis("Vertical"));
         Vector3 toCamDir = camera_Transform.TransformDirection(inputDir).normalized;
 
@@ -184,18 +199,55 @@ public class Player : MonoBehaviour {
             return;
         }
 
-        /*bool hitsGround = Physics.Raycast(GetTransform.position, -Body.up + Body.up * 0.2f, 0.1f, layerMask);
-        if (!hitsGround) {
-            GetTransform.Translate(-Body.up * 0.58f * Time.deltaTime);
-        }*/
-
         // speed
         if (PressInput()) {
-            _speed = Mathf.Lerp(_speed, maxSpeed, acceleration * Time.deltaTime);
+            _speed = Mathf.Lerp(_speed, currentMaxSpeed, acceleration * Time.deltaTime);
         } else {
             _speed = Mathf.Lerp(_speed, 0f, decceleration * Time.deltaTime);
         }
 
+        UpdateGravity();
+
+        if (lockBodyRot) {
+            GetTransform.Translate(turn_anchor.forward * _speed * Time.deltaTime, Space.World);
+        } else {
+            GetTransform.Translate(Body.forward * _speed * Time.deltaTime, Space.World);
+        }
+    }
+
+    public void EnableGravity() {
+        enableGravity = true;
+    }
+
+    public void DisableGravity() {
+        _animator.SetBool("falling", false);
+        enableGravity = false;
+    }
+
+    void UpdateGravity() {
+        if (!enableGravity)
+            return;
+        var origin = GetTransform.position + Body.TransformDirection(grounded_DetectionDecal);
+        RaycastHit hit;
+        isGrounded = Physics.Raycast(origin, -Body.up, out hit, grounded_Distance, grounded_LayerMask);
+        GetAnimator.SetBool("falling", !isGrounded);
+        if (isGrounded) {
+            grounded_Dot = Vector3.Dot(hit.normal, RotationRef.Instance.GetUpDirection());
+            var lerp  = Mathf.InverseLerp(grounded_MinAngle, 1f, grounded_Dot);
+            currentMaxSpeed = Mathf.Lerp(climbMaxSpeed, flatMaxSpeed, lerp);
+
+            Debug.DrawLine(origin, hit.point, Color.green);
+            debugoses.Add(hit.point);
+            if (debugoses.Count > 100)
+                debugoses.RemoveAt(0);
+            GetTransform.position = hit.point;
+            //GetTransform.position = Vector3.Lerp(GetTransform.position, hit.point, gravity_SpeedToGround * Time.deltaTime);
+            gravity_CurrentSpeed = 0f;
+        } else {
+            Debug.DrawRay(origin, -Body.up * grounded_Distance, Color.red);
+            gravity_CurrentSpeed = Mathf.Lerp(gravity_CurrentSpeed, gravity_SpeedRange.y, gravity_Acceleration * Time.timeScale);
+            GetTransform.Translate(-RotationRef.Instance.GetUpDirection() * gravity_CurrentSpeed * Time.deltaTime);
+        }
     }
 
     private void UpdateRotation() {
@@ -208,12 +260,6 @@ public class Player : MonoBehaviour {
                 float tmp_RotSpeed = rotSpeed * Time.deltaTime;
                 Body.rotation = Quaternion.Lerp(Body.rotation, turn_anchor.rotation, tmp_RotSpeed);
             }
-        }
-
-        if (lockBodyRot) {
-            GetTransform.Translate(turn_anchor.forward * _speed * Time.deltaTime, Space.World);
-        } else {
-            GetTransform.Translate(Body.forward* _speed * Time.deltaTime, Space.World);
         }
     }
 
@@ -260,5 +306,11 @@ public class Player : MonoBehaviour {
 
     public void LockBodyRot(bool b) {
         lockBodyRot = b;
+    }
+
+    private void OnDrawGizmos() {
+        foreach (var item in debugoses) {
+            Gizmos.DrawSphere(item, 0.1f);
+        }
     }
 }

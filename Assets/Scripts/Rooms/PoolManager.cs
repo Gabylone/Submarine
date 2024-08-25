@@ -15,22 +15,9 @@ public class PoolManager : MonoBehaviour {
     }
 
     [System.Serializable]
-    public class Pool {
+    public class PoolData {
         public string name;
-        private Transform parent;
         public Transform prefab;
-        public List<Transform> list = new List<Transform>();
-        public Transform GetParent {
-            get {
-                if (parent == null) {
-                    parent = new GameObject().transform;
-                    parent.SetParent(PoolManager.Instance.currentParent);
-                    parent.name = name;
-                }
-
-                return parent;
-            }
-        }
     }
 
     [System.Serializable]
@@ -42,60 +29,55 @@ public class PoolManager : MonoBehaviour {
         public string name;
         public int index;
         public List<Transform> list = new List<Transform>();
+        public Transform parent;
 
-        public void Clear() {
-            for (int i = index; i < list.Count; i++) {
-                PoolManager.Instance.Add(list[i], name);
-            }
-            list.RemoveRange(index, list.Count - index);
-            index = 0;
-        }
-    }
-
-    public Transform currentParent;
-    private List<PoolRequest> poolRequests = new List<PoolRequest>();
-    public List<Pool> poolList;
-
-    public void ClearAll() {
-        foreach (var request in poolRequests) {
-            request.Clear();
-        }
-    }
-    public void Clear(string name) {
-        PoolRequest request = poolRequests.Find(x => x.name == name);
-        if (request == null) {
-            //Debug.LogError($"no request {name} {id}");
-            return;
-        }
-
-        request.Clear();
-    }
-
-    public void DebugClear() {
-        foreach (var item in poolList) {
-            DestroyImmediate(item.GetParent.gameObject);
-            item.list.Clear();
-        }
-
-        foreach (var item in poolRequests) {
-            foreach (var i in item.list) {
-                if (i && i != null) {
-                    DestroyImmediate(i.gameObject);
+        public Transform GetParent {
+            get {
+                if (parent == null) {
+                    parent = new GameObject().transform;
+                    parent.SetParent(PoolManager.Instance.currentGroup.parent);
+                    parent.name = name;
                 }
+
+                return parent;
             }
-            item.list.Clear();
         }
 
-        poolRequests.Clear();
     }
+
+    [System.Serializable]
+    public class PoolGroup {
+        public string name;
+        public Transform parent;
+        public List<PoolRequest> poolRequests = new List<PoolRequest>();
+    }
+
+    public List<PoolGroup> poolGroups = new List<PoolGroup>();
+    public PoolGroup currentGroup;
+    public List<PoolData> poolList;
+
+    public void NewGroup(string name) {
+        var newPoolGroup = new PoolGroup();
+        newPoolGroup.name = name;
+        newPoolGroup.parent = new GameObject().transform;
+        newPoolGroup.parent.name = name;
+        currentGroup = newPoolGroup;
+        poolGroups.Add(newPoolGroup);
+    }
+
+    public void PlaceGroup(Vector3 p, Vector3 f) {
+        currentGroup.parent.position = p;
+        currentGroup.parent.forward = f;
+    }
+
     public Transform RequestObject(string _name, Transform _parent = null) {
-        PoolRequest request = poolRequests.Find(x => x.name == _name);
+        var request = currentGroup.poolRequests.Find(x => x.name == _name);
         if (request == null) {
             request = new PoolRequest(_name);
-            poolRequests.Add(request);
+            currentGroup.poolRequests.Add(request);
         }
 
-        Pool pool = poolList.Find(x => x.name == _name);
+        PoolData pool = poolList.Find(x => x.name == _name);
         if (pool == null) {
             Debug.Log($"error : no pool {_name}");
             return null;
@@ -104,35 +86,15 @@ public class PoolManager : MonoBehaviour {
         Transform tr;
 
         if (request.index >= request.list.Count) {
-            if (pool.list.Count == 0) {
-                // new item to the pool
-                tr = Instantiate(pool.prefab);
-                pool.list.Add(tr);
-            } else {
-                tr = pool.list[0];
-            }
-            pool.list.RemoveAt(0);
+            tr = Instantiate(pool.prefab);
             request.list.Add(tr);
         }
 
         tr = request.list[request.index];
         tr.gameObject.SetActive(true);
-        tr.SetParent(_parent == null ? pool.GetParent : _parent);
+        tr.SetParent(_parent == null ? request.GetParent : _parent);
 
         request.index++;
         return tr;
-    }
-
-    public void Add(Transform tr, string _name) {
-        Pool item = poolList.Find(x => x.name == _name);
-        if (item == null) {
-            Debug.LogError("ADD ITEM no pool by name " + _name);
-            return;
-        }
-
-        tr.gameObject.SetActive(false);
-        //tr.SetParent(item.parent);
-        item.list.Add(tr);
-
     }
 }

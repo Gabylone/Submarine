@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using ConcaveHull;
+using Mono.Cecil.Cil;
 
 [System.Serializable]
 public class RoomData {
@@ -12,23 +13,12 @@ public class RoomData {
     public float size;
     public Hex[] hexes;
     public int entranceLevel;
-    private Side[][] sides;
-    public List<Bridge> bridges = new List<Bridge>();
+    public Side[][] sides;
     public List<Platform> platforms = new List<Platform>();
-    public List<Vector3> debugHits = new List<Vector3>();
 
-    public Side[][] Sides {
-        get {
-            if (sides == null)
-                InitSides();
-            return sides;
-        }
-    }
 
-    public void Randomize() {
+    public void Generate() {
         GlobalRoomData global = GlobalRoomData.Get;
-
-        Random.InitState(seed);
 
         lvls = Random.Range(global.levelCount.x, global.levelCount.y);
         entranceLevel = Random.Range(0, lvls);
@@ -39,7 +29,11 @@ public class RoomData {
             hexes[i] = new Hex();
             hexes[i].Randomize();
         }
+        InitSides();
+
     }
+
+
 
     public void InitSides() {
         // CREATE POINT CLOUD
@@ -111,17 +105,6 @@ public class RoomData {
                 }
 
                 newSide.exit = (Random.value < GlobalRoomData.Get.exitChance) || i == 0 && lvl == entranceLevel;
-
-                // raycast balcony
-                newSide.balcony = (lvl > 0) && (newSide.exit || Random.value < GlobalRoomData.Get.balconyChance);
-                if (newSide.balcony) {
-                    var a = newSide.GetBalconyPoint(0) + newSide.BaseBalconyDir * 0.1f;
-                    var b = newSide.GetBalconyPoint(1) + newSide.BaseBalconyDir * 0.1f;
-                    if (Physics.Linecast(a, b, RoomGenerator.GenLayerMask))
-                        newSide.balcony = false;
-                }
-
-
                 sides[lvl][i] = newSide;
             }
         }
@@ -157,32 +140,17 @@ public class RoomData {
                 side.SetBalconyPoint(0, iLeft);
                 side.SetBalconyPoint(1, iRight);
 
-                SetBridgesSides(side);
             }
         }
 
         
     }
 
-    void SetBridgesSides(Side side) {
-        float bridgeWidth = GlobalRoomData.Get.bridgeWidth;
-        float bridgeDecal = GlobalRoomData.Get.decalBetweenBridges;
-        float xpos = bridgeDecal + bridgeWidth / 2f;
-        while (xpos + bridgeWidth / 2F < side.BalconyWidth) {
-            var balconyDir = side.BalconyDirection;
-            var origin = side.GetBalconyPoint(0) + balconyDir * xpos;
-            var left = origin - balconyDir * bridgeWidth / 2F;
-            var right = origin + balconyDir * bridgeWidth / 2F;
-            xpos += bridgeWidth + bridgeDecal;
-
-            var newBridgeSide = new Bridge.Side(left, right);
-            side.AddBridgeSide(newBridgeSide);
-        }
-    }
+    
 
     public Side GetSide(Vector3 p, int lvl) {
-        Side closestSide = Sides[lvl][0];
-        foreach (Side side in Sides[lvl]) {
+        Side closestSide = sides[lvl][0];
+        foreach (Side side in sides[lvl]) {
             float curr = (closestSide.BaseMid - p).magnitude;
             float it = (side.BaseMid - p).magnitude;
 

@@ -16,7 +16,7 @@ public class IKParam {
     [HideInInspector]
     public float weight = 0f;
     public float weight_speed = 1f;
-    public Transform target;
+    public Transform currentTarget;
 
     public HumanBodyBones humanBodyBone;
     public AvatarIKGoal avatarIKGoal;
@@ -52,7 +52,8 @@ public class IKParam {
     }
 
     public void Start(Transform _target) {
-        target = _target;
+
+        currentTarget = _target;
         active = true;
 
         transitionTimer = 0f;
@@ -108,16 +109,16 @@ public class IKParam {
 
         transition_lerp = transitionTimer / transition_duration;
 
-        if (target != null) {
-            transition.position = Vector3.Lerp(relativePoint.position, target.position, transition_lerp); ;
-            transition.rotation = Quaternion.Lerp(relativePoint.rotation, target.rotation, transition_lerp);
+        if (currentTarget != null) {
+            transition.position = Vector3.Lerp(relativePoint.position, currentTarget.position, transition_lerp); ;
+            transition.rotation = Quaternion.Lerp(relativePoint.rotation, currentTarget.rotation, transition_lerp);
         }
 
         transitionTimer += Time.deltaTime;
     }
 
     public void UpdateTarget() {
-        if (target == null) {
+        if (currentTarget == null) {
             return;
         }
 
@@ -143,10 +144,10 @@ public class IKParam {
             Gizmos.DrawSphere(transition.position, 0.05f);
         }
 
-        if (target != null) {
+        if (currentTarget != null) {
             Gizmos.color = Color.magenta;
-            Gizmos.DrawSphere(target.position, 0.05f);
-            Gizmos.DrawLine(Player.Instance.GetAnimator.GetBoneTransform(humanBodyBone).position, target.position);
+            Gizmos.DrawSphere(currentTarget.position, 0.05f);
+            Gizmos.DrawLine(Player.Instance.GetAnimator.GetBoneTransform(humanBodyBone).position, currentTarget.position);
         }
     }
 }
