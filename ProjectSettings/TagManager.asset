@@ -4,24 +4,25 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - Ocean Walls
-  - handle
+  - Lader
+  - Bone
+  - LadderStick
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - Outline
+  - 
   - Water
   - UI
-  - Wall
-  - Ocean
-  - Submarine
-  - Floor
-  - Radar
-  - Bridge
-  - crotte
-  - Stair Step
-  - Gen Block
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
   - 
   - 
   - 

@@ -16,6 +16,9 @@ public class GlobalRoomData : ScriptableObject {
     public int seed;
     public Vector2Int levelCount;
 
+    [Header("SIDES")]
+    public float sideWidth = 5f;
+
     [Header("CASE")]
     public float caseHeight;
     public float caseDepth;

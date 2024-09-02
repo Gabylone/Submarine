@@ -1,5 +1,3 @@
-using Mono.Cecil.Cil;
-using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
 /// <summary>
@@ -196,7 +194,7 @@ public static class Case {
     }
 
 
-    public static void NewRamp(Vector3 origin, Vector3 end) {
+    public static void NewRamp(Vector3 origin, Vector3 end, Transform tmpParent = null) {
         float rWidth = GlobalRoomData.Get.rampWidth;
         float rHeight = GlobalRoomData.Get.rampHeight;
 
@@ -208,16 +206,21 @@ public static class Case {
         ramp.position = origin + dir / 2f + Vector3.up * rHeight;
         ramp.LookAt(end + Vector3.up * rHeight, Vector3.up);
         ramp.localScale = new Vector3(rWidth, rWidth, dir.magnitude);
-        NewPosts(origin, end);
+        NewPosts(origin, end, tmpParent);
 
         Transform rampCollider = PoolManager.Instance.RequestObject("ramp collider");
         rampCollider.position = origin + dir / 2f;
         rampCollider.LookAt(end , Vector3.up);
         rampCollider.localScale = new Vector3(rWidth, rHeight, dir.magnitude);
 
+        if( tmpParent != null ) {
+            rampCollider.SetParent(tmpParent);
+            ramp.SetParent(tmpParent);
+        }
+
     }
 
-    public static void NewPosts(Vector3 p1, Vector3 p2) {
+    public static void NewPosts(Vector3 p1, Vector3 p2, Transform tmpParent = null) {
         float width = GlobalRoomData.Get.rampWidth;
         float height = GlobalRoomData.Get.rampHeight;
 
@@ -234,6 +237,10 @@ public static class Case {
             tr.position = p;
             /*tr.LookAt(p1, Vector3.up);*/
             tr.localScale = new Vector3(width, height, width);
+
+            if ( tmpParent != null ) {
+                tr.SetParent(tmpParent);
+            }
         }
 
     }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using ConcaveHull;
-using Mono.Cecil.Cil;
+using Unity.VisualScripting;
 
 [System.Serializable]
 public class RoomData {
@@ -13,9 +13,16 @@ public class RoomData {
     public float size;
     public Hex[] hexes;
     public int entranceLevel;
+
     public Side[][] sides;
     public List<Platform> platforms = new List<Platform>();
+    public List<Line> lines = new List<Line>();
 
+    public Side GetSide(int lvl, int index) {
+        if ( index < 0)
+            return sides[lvl][sides[lvl].Length + index];
+        return sides[lvl][index%sides[lvl].Length];
+    }
 
     public void Generate() {
         GlobalRoomData global = GlobalRoomData.Get;
@@ -53,7 +60,7 @@ public class RoomData {
         List<Line> concave = Hull.GetConcave(points.ToArray(), GlobalRoomData.Get.hullConcavity, GlobalRoomData.Get.hullScale);
 
         // SORT CONCABE
-        List<Line> lines = new List<Line>() { concave[0] };
+        lines = new List<Line>() { concave[0] };
         concave.RemoveAt(0);
 
         Line line = lines[0];
@@ -88,57 +95,67 @@ public class RoomData {
             }
         }
 
+        var sideWidth = GlobalRoomData.Get.sideWidth;
         sides = new Side[lvls][];
 
         // SET EXITS & BALCONY
         for (int lvl = 0; lvl < lvls; lvl++) {
-            sides[lvl] = new Side[lines.Count];
-            for (int i = 0; i < sides[lvl].Length; i++) {
-                Side newSide = new Side();
-                newSide.id = i;
-                newSide.lvl = lvl;
-                float y = lvl * GlobalRoomData.Get.caseHeight;
-
-                for (int s = 0; s < 2; s++) {
-                    Vector3 p = new Vector3((float)lines[i].nodes[s].x, y, (float)lines[i].nodes[s].y);
-                    newSide.SetBasePoint(s, p);
+            float y = lvl * GlobalRoomData.Get.caseHeight;
+            var sides_list = new List<Side>();
+            for (int i = 0; i < lines.Count; i++) {
+                var start = new Vector3((float)lines[i].nodes[0].x, y, (float)lines[i].nodes[0].y);
+                var end =   new Vector3((float)lines[i].nodes[1].x, y, (float)lines[i].nodes[1].y);
+                var dir = (end - start);
+                int sideCount = Mathf.Clamp((int)(dir.magnitude / sideWidth), 1, 20);
+                var dif = dir.magnitude - (sideWidth * sideCount);
+                var w = dif / sideCount;
+                // maybe add like a change to have a squigly / sincos side ? like a arc side ? zigzag side? 
+                for (int sideIndex = 0; sideIndex < sideCount ; sideIndex++) {
+                    Side newSide = new Side();
+                    newSide.id = i+sideIndex;
+                    newSide.lvl = lvl;
+                    var a = start + dir.normalized * (sideWidth + w) * sideIndex;
+                    newSide.SetBasePoint(0, a);
+                    var b = a + dir.normalized * (sideWidth + w);
+                    newSide.SetBasePoint(1, b);
+                    newSide.exit = (Random.value < GlobalRoomData.Get.exitChance) || i == 0 && lvl == entranceLevel;
+                    sides_list.Add(newSide);
                 }
-
-                newSide.exit = (Random.value < GlobalRoomData.Get.exitChance) || i == 0 && lvl == entranceLevel;
-                sides[lvl][i] = newSide;
             }
+
+            sides[lvl] = sides_list.ToArray();
         }
 
         // SET INNER POINTS
-        for (int lvl = 0; lvl < lvls; lvl++) {
-            for (int i = 0; i < sides[lvl].Length; i++) {
-                Side side = sides[lvl][i];
+        for (int levelIndex = 0; levelIndex < lvls; levelIndex++) {
+            for (int i = 0; i < sides[levelIndex].Length; i++) {
+                Side side = sides[levelIndex][i];
 
-                int pi = i == 0 ? sides[lvl].Length - 1 : (i - 1);
-                int ni = i == sides[lvl].Length - 1 ? 0 : (i + 1);
-                Side pSide = sides[lvl][pi];
-                Side cSide = sides[lvl][i];
-                Side nSide = sides[lvl][ni];
+                var current_side = sides[levelIndex][i];
+                int previous_index = i == 0 ? sides[levelIndex].Length - 1 : (i - 1);
+                int nextIndex = (i + 1) % sides[levelIndex].Length;
+                var previous_side = sides[levelIndex][previous_index];
+                var next_side = sides[levelIndex][nextIndex];
 
                 // prev
-                Vector3 cV = -cSide.BaseDirection;
-                Vector3 pV = pSide.BaseDirection;
-                float pdot = Vector3.Dot(pV, Vector3.Cross(cV, Vector3.up));
-                Vector3 v1 = Vector3.Lerp(cV, pV, 0.5f).normalized;
-                v1 = pdot > 0 ? -v1 : v1;
+                Gizmos.color = Color.white;
+                // direction
 
-                Vector3 iLeft = cSide.GetBasePoint(0) + (v1 * GlobalRoomData.Get.balconyDepth);
-
-                // next
-                Vector3 nV = nSide.BaseDirection;
-                float ndot = Vector3.Dot(nV, Vector3.Cross(cV, Vector3.up));
-                Vector3 v2 = Vector3.Lerp(cV, nV, 0.5f).normalized;
-                v2 = ndot > 0 ? -v2 : v2;
-
-                Vector3 iRight = cSide.GetBasePoint(1) + (v2 * GlobalRoomData.Get.balconyDepth);
-
-                side.SetBalconyPoint(0, iLeft);
-                side.SetBalconyPoint(1, iRight);
+                for (int j = 0; j < 2; j++) {
+                    var targetDir = j == 0 ? -previous_side.BaseDirection : next_side.BaseDirection;
+                    var currDir = j == 0 ? current_side.BaseDirection : -current_side.BaseDirection;
+                    var dot = Vector3.Dot(targetDir, Vector3.Cross(currDir, Vector3.up));
+                    bool flat = dot < 0.01f && dot > -0.01f;
+                    var innerNormal = Vector3.Cross(current_side.BaseDirection, Vector3.up);
+                    if (!flat) {
+                        // get average of the two vectors
+                        innerNormal = dot > 0 ? Vector3.Lerp(currDir, targetDir, 0.5f).normalized : -Vector3.Lerp(currDir, targetDir, 0.5f).normalized;
+                        if (j == 1)
+                            innerNormal = -innerNormal;
+                    }
+                    var balconyPoint = current_side.GetBasePoint(j) + (innerNormal * GlobalRoomData.Get.balconyDepth);
+                    current_side.SetBalconyPoint(j, balconyPoint);
+                }
 
             }
         }

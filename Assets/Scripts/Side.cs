@@ -8,7 +8,7 @@ public class Side {
     public bool balcony;
     private Vector3[] _basePoints = new Vector3[2];
     private Vector3[] _balconyPoints = new Vector3[2];
-    public List<Bridge.Side> bridgeSides = new List<Bridge.Side>();
+    public List<Bridge> bridges = new List<Bridge>();
     
 
     public Vector3 GetBasePoint(int i) {
@@ -41,6 +41,7 @@ public class Side {
             return (GetBalconyPoint(1) - GetBalconyPoint(0)).normalized;
         }
     }
+
 
     public Vector3 BaseBalconyDir{
         get {

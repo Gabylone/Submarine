@@ -1,12 +1,8 @@
 using AdvancedPeopleSystem;
 using System.Collections.Generic;
-using System.Runtime.ExceptionServices;
-using System.Threading;
 using UnityEngine;
-using UnityEngine.Rendering.PostProcessing;
 
 public class Player : MonoBehaviour {
-    List<Vector3> debugoses = new List<Vector3>();
     /// <summary>
     /// SINGLETON
     /// </summary>
@@ -41,9 +37,10 @@ public class Player : MonoBehaviour {
     /// </summary>
     [Header("Movement")]
     [Space]
-    public float currentMaxSpeed = 3f;
-    public float flatMaxSpeed = 3f;
-    public float climbMaxSpeed = 0f;
+    public float _maxSpeed = 3f;
+    public float flatWalkSpeed = 3f;
+    public float runSpeed = 10f;
+    public float climbSpeed = 0f;
     public float acceleration = 0.5f;
 
     public float decceleration = 0.5f;
@@ -56,6 +53,7 @@ public class Player : MonoBehaviour {
     [Header("Ground Detection")]
     public Vector3 grounded_DetectionDecal;
     public float grounded_Distance = 1f;
+    public float grounded_Radius = 1f;
     [Range(-1, 1)]
     public float grounded_Dot = 0f;
     public float grounded_MinAngle = 0.5f;
@@ -161,7 +159,7 @@ public class Player : MonoBehaviour {
         deltaSpeed = Mathf.Clamp01(deltaSpeed);
 
         //float _animationDelta = (_speed / maxSpeed) * deltaSpeed;
-        float _animationDelta = (_speed / currentMaxSpeed);
+        float _animationDelta = (_speed / flatWalkSpeed) + Mathf.Clamp01((_speed-flatWalkSpeed) /runSpeed);
         GetAnimator.SetFloat("movement", _animationDelta);
 
         // update rotation
@@ -201,7 +199,8 @@ public class Player : MonoBehaviour {
 
         // speed
         if (PressInput()) {
-            _speed = Mathf.Lerp(_speed, currentMaxSpeed, acceleration * Time.deltaTime);
+            _speed = Mathf.Lerp(_speed, _maxSpeed, acceleration * Time.deltaTime);
+            
         } else {
             _speed = Mathf.Lerp(_speed, 0f, decceleration * Time.deltaTime);
         }
@@ -228,25 +227,29 @@ public class Player : MonoBehaviour {
         if (!enableGravity)
             return;
         var origin = GetTransform.position + Body.TransformDirection(grounded_DetectionDecal);
-        RaycastHit hit;
-        isGrounded = Physics.Raycast(origin, -Body.up, out hit, grounded_Distance, grounded_LayerMask);
+        RaycastHit sphereHit;
+        isGrounded = Physics.SphereCast(origin,grounded_Radius, -Body.up, out sphereHit, grounded_Distance, grounded_LayerMask);
+        RaycastHit rayHit;
+        Physics.Raycast(origin, -Body.up, out rayHit, grounded_Distance, grounded_LayerMask);
         GetAnimator.SetBool("falling", !isGrounded);
         if (isGrounded) {
-            grounded_Dot = Vector3.Dot(hit.normal, RotationRef.Instance.GetUpDirection());
+            grounded_Dot = Vector3.Dot(rayHit.normal, RotationRef.Instance.GetUpDirection());
             var lerp  = Mathf.InverseLerp(grounded_MinAngle, 1f, grounded_Dot);
-            currentMaxSpeed = Mathf.Lerp(climbMaxSpeed, flatMaxSpeed, lerp);
 
-            Debug.DrawLine(origin, hit.point, Color.green);
-            debugoses.Add(hit.point);
-            if (debugoses.Count > 100)
-                debugoses.RemoveAt(0);
-            GetTransform.position = hit.point;
+            if ( Input.GetKey(KeyCode.LeftShift) ) {
+                _maxSpeed = Mathf.Lerp(_maxSpeed, runSpeed, lerp);
+            } else {
+                _maxSpeed = Mathf.Lerp(_maxSpeed, flatWalkSpeed, lerp);
+            }
+
+            Debug.DrawLine(origin, rayHit.point, Color.green);
+            //GetTransform.position = rayHit.point;
             //GetTransform.position = Vector3.Lerp(GetTransform.position, hit.point, gravity_SpeedToGround * Time.deltaTime);
             gravity_CurrentSpeed = 0f;
         } else {
             Debug.DrawRay(origin, -Body.up * grounded_Distance, Color.red);
             gravity_CurrentSpeed = Mathf.Lerp(gravity_CurrentSpeed, gravity_SpeedRange.y, gravity_Acceleration * Time.timeScale);
-            GetTransform.Translate(-RotationRef.Instance.GetUpDirection() * gravity_CurrentSpeed * Time.deltaTime);
+            //GetTransform.Translate(-RotationRef.Instance.GetUpDirection() * gravity_CurrentSpeed * Time.deltaTime);
         }
     }
 
@@ -309,8 +312,17 @@ public class Player : MonoBehaviour {
     }
 
     private void OnDrawGizmos() {
-        foreach (var item in debugoses) {
-            Gizmos.DrawSphere(item, 0.1f);
+        var origin = GetTransform.position + Body.TransformDirection(grounded_DetectionDecal);
+        RaycastHit hit;
+        isGrounded = Physics.SphereCast(origin, grounded_Radius, -Body.up, out hit, grounded_Distance, grounded_LayerMask);
+        Gizmos.color = isGrounded ? Color.green : Color.red;
+        Gizmos.DrawWireSphere(origin, grounded_Radius);
+        Gizmos.DrawWireSphere(origin - Body.up * grounded_Distance, grounded_Radius);
+        if (isGrounded) {
+            Gizmos.DrawLine(origin, hit.point);
+        } else {
+            Gizmos.DrawLine(origin, -Body.up * grounded_Distance);
         }
+
     }
 }

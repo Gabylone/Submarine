@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
@@ -7,6 +8,22 @@ public class Hex {
     public Vector3 sizeMult;
     public Vector3 origin;
     public Vector3[] points;
+    public List<Vector3> camera_Anchors = new List<Vector3>();
+
+    public Vector3 GetClosestAnchor(Vector3 p) {
+        var anchor = camera_Anchors[0];
+        for (int i = 1; i < camera_Anchors.Count; i++) {
+            var item = camera_Anchors[i];
+            if ((item - anchor).sqrMagnitude <
+                (p - anchor).sqrMagnitude) {
+                anchor = item;
+            }
+        }
+
+        return anchor;
+    }
+
+    public Vector3 center;
 
     public Vector3[] GetPositions() {
         Vector3 frw = Vector3.forward;
@@ -45,7 +62,13 @@ public class Hex {
 
         }
 
+        
+
         points = tmp_points;
+
+        foreach (var p in points)
+            center += p;
+        center /= points.Length;
         return tmp_points;
     }
 
@@ -60,6 +83,8 @@ public class Hex {
         float y = Random.Range(0f, global.sizeMult_max.y);
         float z = Random.Range(0f, global.sizeMult_max.z);
         sizeMult = new Vector3(x, y, z);
+
+
     }
 
     public static Vector3 Rotated(Vector3 vector, Quaternion rotation, Vector3 pivot = default(Vector3)) {

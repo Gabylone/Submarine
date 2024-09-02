@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
-using UnityEditor.MemoryProfiler;
 
 public class CameraGroup : MonoBehaviour {
     public static void NewCamera(Vector3[] ts) {

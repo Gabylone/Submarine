@@ -7,7 +7,7 @@ public class RoomManagerEditor : Editor {
         RoomManager rm = (RoomManager)target;
 
         if (GUILayout.Button("randomize room data")) {
-            rm._data.Generate();
+            rm.GetData.Generate();
         }
 
         base.OnInspectorGUI();
