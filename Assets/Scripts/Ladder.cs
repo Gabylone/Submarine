@@ -117,8 +117,8 @@ public class Ladder : Interactable {
         int posIndex = 0;
         for (int i = -1; i < 2; i += 2) {
             var upDir = (positions[posIndex+2] - positions[posIndex]);
-            Transform side = PoolManager.Instance.RequestObject("ladder side");
-            side.position = positions[posIndex] + upDir / 2f;
+            Transform side = PoolManager.Instance.NewObject("pole", "ladder sides");
+            side.position = positions[posIndex];
             side.up = upDir.normalized;
             side.localScale = new Vector3(ladderSide_Width, upDir.magnitude, ladderSide_Width);
             side.parent = stepParent;
@@ -130,7 +130,7 @@ public class Ladder : Interactable {
         ladderSteps = new Transform[stepsAmount];
         for (int i = 0; i < stepsAmount; i++) {
 
-            Transform step = PoolManager.Instance.RequestObject("ladder step");
+            Transform step = PoolManager.Instance.NewObject("pole", "ladder steps");
 
             var leftPos = positions[0] + LeftDir * i / stepsAmount;
             var rightPos= positions[1] + RightDir * i / stepsAmount;
@@ -139,7 +139,7 @@ public class Ladder : Interactable {
             step.right = (rightPos-leftPos).normalized;
 
             var width = (rightPos-leftPos).magnitude;
-            step.localScale = new Vector3(width, 1f, 1f);
+            step.localScale = new Vector3(width, ladderSide_Width, ladderSide_Width);
 
             ladderSteps[i] = step;
             step.parent = stepParent;
@@ -470,7 +470,7 @@ public class Ladder : Interactable {
 
     private void OnDrawGizmos() {
 
-        if (positions.Length == 0 || (RoomManager.Instance != null &&!RoomManager.Instance.debugLadders))
+        if (positions.Length == 0 )
             return;
 
         Gizmos.color = Color.cyan;

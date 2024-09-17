@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 
 public static class MeshControl {
@@ -41,6 +42,7 @@ public static class MeshControl {
         Left_Bottom_Back,
     }
 
+    static bool prout = false;
     public static void Update(MeshFilter meshFilter, Vector3[] vertices) {
         Mesh mesh = meshFilter.mesh;
 
@@ -51,6 +53,8 @@ public static class MeshControl {
                 tmp_Vertices[GetVerts(i)[v]] = vertices[i];
             }
         }
+
+        prout = true;
 
         mesh.vertices = tmp_Vertices;
         mesh.RecalculateNormals();

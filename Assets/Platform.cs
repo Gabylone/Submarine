@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Analytics;
 
 [System.Serializable]
 public class Platform {
@@ -13,11 +14,14 @@ public class Platform {
     public List<Bridge> bridges = new List<Bridge>();
     public Transform mesh_Transform;
 
+    public List<Side>[] tmpSides;
+
+
     public List<Vector3> debug_LinkedPlatforms = new List<Vector3>();
 
     float angle;
 
-    float Angle {
+    public float Angle {
         get {
             if (angle == 0) {
                 Bridge bs = CreateNewBridge(origin + Vector3.forward);
@@ -31,13 +35,13 @@ public class Platform {
     }
     public IEnumerator CreateNecessaryLinks() {
         float w = GlobalRoomData.Get.bridgeWidth;
-        RoomData data = RoomManager.Instance.GetData;
+        RoomData data = RoomGenerator.Instance.GetData;
         var levels = new int[3]{_level,_level-1,_level+1};
         for (int i = 0; i < levels.Length; ++i) {
             var lvl = levels[i];
             if (lvl < 0 || lvl >= data.sides.Length)
                 continue;
-            for (int sideIndex = 0; sideIndex < data.sides[lvl].Length; sideIndex++) {
+            for (int sideIndex = 0; sideIndex < data.sides[lvl].Count; sideIndex++) {
                 Side side = data.sides[lvl][sideIndex];
                 foreach (var balconyBridge in side.bridges.FindAll(x=>!x.built)) {
                     var newBridge = TryAddBridge(balconyBridge);
@@ -52,6 +56,34 @@ public class Platform {
             continue;
         }
 
+    }
+
+    public void NecessaryBridges_Debug() {
+        float w = GlobalRoomData.Get.bridgeWidth;
+        RoomData data = RoomGenerator.Instance.GetData;
+        var levels = new int[3] { _level, _level - 1, _level + 1 };
+        for (int i = 0; i < levels.Length; ++i) {
+            var lvl = levels[i];
+            if (lvl < 0 || lvl >= data.sides.Length)
+                continue;
+            for (int sideIndex = 0; sideIndex < data.sides[lvl].Count; sideIndex++) {
+                Side side = data.sides[lvl][sideIndex];
+                foreach (var balconyBridge in side.bridges.FindAll(x => !x.built)) {
+                    var newBridge = CreateNewBridge(balconyBridge.mid);
+                    // check if platform has room for new bridge
+                    if (!CanFitBridgeSide(newBridge))
+                        continue;
+
+                    if (newBridge != null) {
+                        newBridge.SetTargetBridge(balconyBridge);
+                        newBridge.Draw();
+                        goto NextLevel;
+                    }
+                }
+            }
+            NextLevel:
+            continue;
+        }
     }
 
     public Bridge TryAddBridge(Bridge targetBridge) {
@@ -70,39 +102,51 @@ public class Platform {
     }
 
 
-    public IEnumerator CreateLinks_Balconies_Floor(bool keepTrack= false) {
+    public IEnumerator CreateLinks_Balconies_Floor(int lvl) {
         float w = GlobalRoomData.Get.bridgeWidth;
-        RoomData data = RoomManager.Instance.GetData;
-        List<List<Bridge>> bridges = new List<List<Bridge>>();
+        RoomData data = RoomGenerator.Instance.GetData;
+        List<List<Bridge>> bridge_levels = new List<List<Bridge>>();
 
-
-        for (int lvl = 0; lvl < data.sides.Length; lvl++) {
-            bridges.Add(new List<Bridge>());
-            for (int i = 0; i < data.sides[lvl].Length; i++) {
-                Side side = data.sides[lvl][i];
-                if ( lvl>0 && !side.balcony) continue;
-                bridges[lvl].AddRange(side.bridges.FindAll(x => (x.mid - origin).magnitude < 10f));
+        // TEST essayé voir si on crée pas que des lien avec le meme niveau après avoir rajouté un nombre adéqua de lien entre étage
+        // add wall bridges
+        bridge_levels.Add(new List<Bridge>());
+        for (int i = 0; i < data.sides[lvl].Count; i++) {
+            Side side = data.sides[lvl][i];
+            if (lvl > 0 && !side.balcony) continue;
+            bridge_levels[lvl].AddRange(side.bridges.FindAll(x => (x.mid - origin).magnitude < 30f));
+        }
+        // ad platform bridges
+        foreach (var platform in data.platforms) {
+            if (platform.index == index) continue;
+            if (platform.tmpSides != null && lvl < platform.tmpSides.Length) {
+                foreach (var side in platform.tmpSides[lvl])
+                    bridge_levels[lvl].AddRange(side.bridges);
             }
         }
+        int crotte = 0;
+        foreach (var bridgeGroup in bridge_levels) {
+            crotte += bridgeGroup.Count;
+        }
+        int c = bridge_levels.RemoveAll(x => x.Count == 0);
 
-        int c = bridges.RemoveAll(x => x.Count == 0);
-        int safe = 1000;
+
+        int safe = 1500;
         int lvlIndex = 0;
-        while (bridges.Count > 0) {
+        while (bridge_levels.Count > 0) {
             --safe;
             if (safe <= 0) {
                 Debug.LogError($"SAFE");
                 break;
             }
-            int bridgeIndex = Random.Range(0, bridges[lvlIndex].Count);
-            Bridge balconyBridge = bridges[lvlIndex][bridgeIndex];
+            int bridgeIndex = Random.Range(0, bridge_levels[lvlIndex].Count);
+            Bridge balconyBridge = bridge_levels[lvlIndex][bridgeIndex];
             /// loop through
-            bridges[lvlIndex].RemoveAt(bridgeIndex);
-            if (bridges[lvlIndex].Count == 0) {
-                bridges.RemoveAt(lvlIndex);
-                if (bridges.Count == 0)
+            bridge_levels[lvlIndex].RemoveAt(bridgeIndex);
+            if (bridge_levels[lvlIndex].Count == 0) {
+                bridge_levels.RemoveAt(lvlIndex);
+                if (bridge_levels.Count == 0)
                     break;
-                lvlIndex = lvlIndex % bridges.Count;
+                lvlIndex = lvlIndex % bridge_levels.Count;
             }
 
             var newBridge = TryAddBridge(balconyBridge);
@@ -110,17 +154,18 @@ public class Platform {
                 // loop through levels
                 yield return new WaitForEndOfFrame();
                 newBridge.Build();
-                lvlIndex = (lvlIndex + 1) % bridges.Count;
-                if (keepTrack) {
-                    Debug.Log("new bridge after clean");
-                }
+                lvlIndex = (lvlIndex + 1) % bridge_levels.Count;
             }
         }
     }
 
+    public void Links_Debug() {
+
+    }
+
     public IEnumerator CheckLinksWithOtherPlatforms() {
         float w = GlobalRoomData.Get.bridgeWidth;
-        RoomData data = RoomManager.Instance.GetData;
+        RoomData data = RoomGenerator.Instance.GetData;
         var tmpPlatforms = data.platforms.OrderBy((p) => (p.origin - origin).sqrMagnitude).ToList();
 
         for (int i = 0; i < tmpPlatforms.Count; i++) {
@@ -138,11 +183,40 @@ public class Platform {
                 yield return new WaitForEndOfFrame();
                 newBridge.Build();
             }
-
-            
         }
 
     }
+
+    public void PlatformLinks_Debug() {
+        float w = GlobalRoomData.Get.bridgeWidth;
+        RoomData data = RoomGenerator.Instance.GetData;
+        var tmpPlatforms = data.platforms.OrderBy((p) => (p.origin - origin).sqrMagnitude).ToList();
+
+        for (int i = 0; i < tmpPlatforms.Count; i++) {
+            // skip current plt
+            if (i == index) continue;
+            Platform targetPlatform = tmpPlatforms[i];
+            var targetPlatformBridge = targetPlatform.CreateNewBridge(origin);
+            var newBridge = TryAddBridge(targetPlatformBridge);
+            if (newBridge != null) {
+                if (!targetPlatform.CanFitBridgeSide(targetPlatformBridge))
+                    continue;
+                Gizmos.DrawLine(newBridge.left, targetPlatformBridge.right);
+                Gizmos.DrawLine(newBridge.right, targetPlatformBridge.left);
+            }
+        }
+    }
+
+    public void CreateBridges() {
+        Debug.LogWarningFormat($"{Angle}");
+        var bridgeCount = 360f / Angle;
+        Debug.Log($"bridge count : {bridgeCount}");
+        for (int j = 0; j < bridgeCount; j++) {
+            var dir = Vector3.forward;
+            dir = Quaternion.AngleAxis(Angle * j, Vector3.up) * dir;
+            bridges.Add(CreateNewBridge(origin + dir));
+        }
+    }   
 
     public Bridge CreateNewBridge(Vector3 otherPlatform) {
         Vector3 dir = otherPlatform - origin;
@@ -194,12 +268,26 @@ public class Platform {
         }
     }
 
-    public void DrawMesh() {
+    public void HandleEmpty() {
         if (bridges.Count == 0) {
-            Debug.Log($"ERROR : Platform with no bridge ?");
-            return;
+            var newBridge = CreateNewBridge(origin + (Vector3.forward).normalized * radius);
+            bridges.Add(newBridge);
         }
 
+        if (bridges.Count == 1) {
+            var newBridge = CreateNewBridge(origin + (origin - bridges[0].mid).normalized * radius);
+            bridges.Add(newBridge);
+        }
+
+        if (bridges.Count == 2) {
+            var tmpMid = bridges[0].mid + (bridges[1].mid - bridges[0].mid) / 2f;
+            var newBridge = CreateNewBridge(origin + (origin - tmpMid).normalized * radius);
+            bridges.Add(newBridge);
+        }
+    }
+
+    public void DrawMesh() {
+        if ( bridges.Count == 0 ) return;
         // sort all bridge sides
         ClockwiseBridgeSidesComparer comp = new ClockwiseBridgeSidesComparer();
         comp.origin = origin;
@@ -208,99 +296,46 @@ public class Platform {
         bridges.Sort((Bridge b1, Bridge b2) => comp.Compare(b1, b2));
 
         // get all points (sorted from bridge sort)
-        List<Vector3> vertices = new List<Vector3>();
-        foreach (var bSide in bridges) {
-            vertices.Add(bSide.left);
-            vertices.Add(bSide.right);
+        Vector3[] points = new Vector3[bridges.Count*2];
+        for (int i = 0, j = 0; i < bridges.Count; ++i, j+=2) {
+            points[j] = bridges[i].left;
+            points[j+1] = bridges[i].right;
         }
-
-        // calc center
-        var center = Vector3.zero;
-        foreach (var vertex in vertices)
-            center += vertex;
-        center /= vertices.Count;
-        vertices.Insert(0, center);
-
-        List<int> triangles = new List<int>();
-        for (int i = 1; i < vertices.Count; i++) {
-            var nextIndex = i + 1 == vertices.Count ? 1 : i + 1;
-            triangles.Add(0);
-            triangles.Add(i);
-            triangles.Add(nextIndex);
-        }
-
-        int c = vertices.Count;
-        for (int i = 0; i < c; i++)
-            vertices.Add(vertices[i] - Vector3.up * GlobalRoomData.Get.balconyHeight);
-
-
-        for (int i = c; i < vertices.Count; i++) {
-            var nextIndex = i + 1 == vertices.Count ? c + 1 : i + 1;
-            triangles.Add(nextIndex);
-            triangles.Add(i);
-            triangles.Add(c);
-        }
-
-        for (int i = 1; i < c; i++) {
-
-            if (i == c - 1) {
-                triangles.Add(i + c);
-                triangles.Add(1);
-                triangles.Add(i);
-                triangles.Add(i + c);
-                triangles.Add(1 + c);
-                triangles.Add(1);
-                continue;
-            }
-
-            triangles.Add(i + c);
-            triangles.Add(i + 1);
-            triangles.Add(i);
-
-            triangles.Add(i + c);
-            triangles.Add(i + c + 1);
-            triangles.Add(i + 1);
-
-        }
-
-        Vector3[] normals = new Vector3[vertices.Count];
-        var t = center + Vector3.up * GlobalRoomData.Get.balconyHeight / 2f;
-        for (int i = 0; i < vertices.Count; i++) {
-            normals[i] = Vector3.up;
-        }
-
-
-        Vector2[] uvs = new Vector2[vertices.Count];
-        uvs[0] = new Vector2(0f, 0f);
 
         Mesh mesh;
         MeshFilter meshFilter;
-
         if (mesh_Transform == null) {
-            mesh_Transform = PoolManager.Instance.RequestObject("platform");
+            mesh_Transform = PoolManager.Instance.NewObject("floor", "Platforms");
             meshFilter = mesh_Transform.GetComponentInChildren<MeshFilter>();
             mesh = new Mesh() {
                 name = "Platform Mesh"
             };
         } else {
             meshFilter = mesh_Transform.GetComponentInChildren<MeshFilter>();
-            mesh = meshFilter.sharedMesh;
+            mesh = meshFilter.mesh;
         }
 
-        mesh.Clear();
-        mesh.vertices = vertices.ToArray();
-
-        mesh.uv = uvs;
-        mesh.normals = normals;
-        mesh.triangles = triangles.ToArray();
-
-        mesh.RecalculateBounds();
-        mesh.RecalculateTangents();
-        mesh.RecalculateNormals();
-
-        meshFilter.mesh = mesh;
-        meshFilter.GetComponentInChildren<MeshCollider>().convex = false;
+        meshFilter.mesh = PolyDrawer.GetMesh(mesh, points);
         meshFilter.GetComponentInChildren<MeshCollider>().sharedMesh = meshFilter.mesh;
+        return;
+    }
+
+    public void BuildTower() {
+        var points = new List<Vector3>();
+        for (int b = 0; b < bridges.Count; b++) {
+            var left = bridges[b].left;
+            var right = bridges[b].right;
+            left.y = 0f;
+            right.y = 0f;
+            points.Add(left);
+            points.Add(right);
+        }
+
+        var newSides = SideGroup.CreateSides(points, _level);
+        tmpSides = newSides;
+
+
+        SideGroup.DrawSides(newSides, true);
     }
 
     public void BuildRamps() {
@@ -327,74 +362,5 @@ public class Platform {
 
         Case.NewRamp(o, bridges[0].left);
 
-    }
-
-    public void GizmosLinks() {
-        float w = GlobalRoomData.Get.bridgeWidth;
-        RoomData data = RoomManager.Instance.GetData;
-        // bridges per level
-        List<List<Bridge>> bridges = new List<List<Bridge>>();
-        for (int lvl = 0; lvl < data.sides.Length; lvl++) {
-            bridges.Add(new List<Bridge>());
-            for (int i = 0; i < data.sides[lvl].Length; i++) {
-                Side side = data.sides[lvl][i];
-                if (lvl > 0 && !side.balcony) continue;
-                bridges[lvl].AddRange(side.bridges.FindAll(x => (x.mid - origin).magnitude < 10f));
-            }
-        }
-
-        // remove empty levels 
-        int c = bridges.RemoveAll(x => x.Count == 0);
-
-        // jic
-        int safe = 1000;
-        int lvlIndex = 0;
-        while (bridges.Count > 0) {
-            --safe;
-            if (safe <= 0) {
-                Debug.LogError($"SAFE");
-                break;
-            }
-            int bridgeIndex = Random.Range(0, bridges[lvlIndex].Count);
-            Bridge balconyBridge = bridges[lvlIndex][bridgeIndex];
-
-            /// loop through
-            bridges[lvlIndex].RemoveAt(bridgeIndex);
-            if (bridges[lvlIndex].Count == 0) {
-                bridges.RemoveAt(lvlIndex);
-                if (bridges.Count == 0)
-                    break;
-                lvlIndex = lvlIndex % bridges.Count;
-            }
-
-            Bridge newBridge = CreateNewBridge(balconyBridge.mid);
-            
-
-            // check if path is blocked
-            if (newBridge.Blocked(balconyBridge)) {
-                if (!RoomManager.Instance.debugBlockedBalconies)
-                    continue;
-                Gizmos.color = Color.red;
-            } else if (!CanFitBridgeSide(newBridge)) {
-                if (!RoomManager.Instance.debugInvalidBalconies)
-                    continue;
-                Gizmos.color = Color.yellow;
-            } else {
-                if (!RoomManager.Instance.debugValidBalconies)
-                    continue;
-                Gizmos.color = Color.green;
-            }
-
-            // check if platform has room for new bridge
-            Gizmos.DrawSphere(balconyBridge.right, 0.1f);
-            Gizmos.DrawSphere(balconyBridge.left, 0.1f);
-            Gizmos.DrawSphere(newBridge.right, 0.1f);
-            Gizmos.DrawSphere(newBridge.left, 0.1f);
-            Gizmos.DrawLine(newBridge.right, balconyBridge.left);
-            Gizmos.DrawLine(newBridge.left, balconyBridge.right);
-
-            // loop through levels
-            lvlIndex = (lvlIndex + 1) % bridges.Count;
-        }
     }
 }

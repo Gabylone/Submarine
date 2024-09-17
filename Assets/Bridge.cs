@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Xml.Schema;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -49,7 +50,7 @@ public class Bridge {
     }
 
     public bool built = false;
-    public Transform group;
+    public Transform bridgeParent;
     public bool link = false;
 
     public Vector3 left;
@@ -61,7 +62,7 @@ public class Bridge {
             return false;
 
         if ( b1.GetTargetBridge() != null || b2.GetTargetBridge() != null) {
-            Debug.Log("woops");
+            Debug.Log("WARNING : Bridge already connected");
             return false;
         }
 
@@ -70,26 +71,30 @@ public class Bridge {
         return true;
     }
 
+    public void Clean() {
+        GetTargetBridge().SetTargetBridge(null);
+        GetTargetBridge().built = false;
+        SetTargetBridge(null);
+        bridgeParent.gameObject.SetActive(false);
+        bridgeParent = null;
+        built = false;
+    }
+
     public bool Blocked(Bridge targetBridge, bool debug = false) {
         float sideBuffer = GlobalRoomData.Get.bridgeSideBuffer;
         float lenghtBuffer = GlobalRoomData.Get.bridgeLenghtBuffer;
         float upDecal = GlobalRoomData.Get.bridgeUpDecal;
 
-        // angle
-        var dirToPlat = targetBridge.mid - mid;
-        float dot = Vector3.Dot(dirToPlat.normalized, normal);
-        if (dot < 0.2f) {
-            if (debug) {
-                Gizmos.color = Color.magenta;
-                Gizmos.DrawRay(mid, normal);
-                Gizmos.DrawRay(targetBridge.mid, targetBridge.normal);
-                Gizmos.color = Color.white;
-                Gizmos.DrawLine(mid, targetBridge.mid);
-            }
+        // check if bridge direction doesn't point behind bridge 
+        var dirToBridge = targetBridge.mid - mid;
+        float dot = Vector3.Dot(dirToBridge.normalized, normal);
+        if (dot < 0.2f)
             return true;
-        }
 
-
+        //
+        dot = Vector3.Dot(normal, targetBridge.normal);
+        if (dot > 0)
+            return true;
 
         Vector3[] start = new Vector3[4] {
                 left - GetSideDir * sideBuffer,
@@ -121,9 +126,10 @@ public class Bridge {
             }
 
             RaycastHit hit;
-            bool cast = Physics.Linecast(a, b, out hit, RoomManager.Instance.layerMask);
-            if (cast)
+            bool cast = Physics.Linecast(a, b, out hit, RoomGenerator.Instance.layerMask);
+            if (cast) {
                 block = true;
+            }
             if (debug) {
                 if (cast) {
                     Gizmos.color = Color.red;
@@ -160,12 +166,12 @@ public class Bridge {
         if (Parent == null) {
             Parent = new GameObject().transform;
             Parent.name = "Bridges";
-            Parent.SetParent(PoolManager.Instance.currentGroup.parent);
+            Parent.SetParent(PoolManager.Instance.currentRoom.parent);
         }
 
-        group = new GameObject().transform;
-        group.SetParent(Parent);
-        group.name = "Bridge";
+        bridgeParent = new GameObject().transform;
+        bridgeParent.SetParent(Parent);
+        bridgeParent.name = "Bridge";
 
         // set built 
         built = true;
@@ -195,14 +201,14 @@ public class Bridge {
         switch (type) {
             case Type.Normal:
                 BuildFloor();
-                Case.NewRamp(left, targetBridge.right, group);
-                Case.NewRamp(right, targetBridge.left, group);
+                Case.NewRamp(left, targetBridge.right, bridgeParent);
+                Case.NewRamp(right, targetBridge.left, bridgeParent);
                 break;
             case Type.Stairs:
                 BuildFloor();
                 BuildStairs();
-                Case.NewRamp(left, targetBridge.right, group);
-                Case.NewRamp(right, targetBridge.left, group);
+                Case.NewRamp(left, targetBridge.right, bridgeParent);
+                Case.NewRamp(right, targetBridge.left, bridgeParent);
                 break;
             case Type.Ladder:
                 BuildLadder();
@@ -220,16 +226,10 @@ public class Bridge {
             default:
                 break;
         }
-
-        /*if (debug) {
-            foreach (var item in group.GetComponentsInChildren<Renderer>()) {
-                item.material.color = Color.blue;
-            }
-        }*/
     }
 
     public void BuildFloor() {
-        Transform bridge_Tr = PoolManager.Instance.RequestObject("bridge", group);
+        Transform bridge_Tr = PoolManager.Instance.NewObject("floor", "bridge", bridgeParent);
         float balconyHeight = GlobalRoomData.Get.balconyHeight;
 
         // mesh
@@ -247,22 +247,12 @@ public class Bridge {
         };
         MeshControl.Update(meshFilter, vertices);
         bridge_Tr.GetComponentInChildren<MeshCollider>().sharedMesh = meshFilter.mesh;
-        if (type == Type.Stairs) {
+        if (type == Type.Stairs)
             bridge_Tr.GetComponentInChildren<MeshRenderer>().enabled = false;
-
-            
-        } else {
-            if (targetBridge.linkedPlatform == null) {
-                var dif = (left - targetBridge.right).magnitude 
-                    - (right - targetBridge.left).magnitude;
-
-                bridge_Tr.GetComponentInChildren<MeshRenderer>().material.color = Color.Lerp(Color.white, Color.red, dif / 3f);
-            }
-        }
 
     }
     public void BuildLadder() {
-        var ladder = PoolManager.Instance.RequestObject("ladder", group).GetComponent<Ladder>();
+        var ladder = PoolManager.Instance.NewObject("ladder", "Ladders", bridgeParent).GetComponent<Ladder>();
         var ladderWidth = GlobalRoomData.Get.ladderWidth;
 
         type = Type.Stairs;
@@ -292,22 +282,21 @@ public class Bridge {
         for (int i = 0; i < (stairCount + 1); i++) {
             Vector3 stair_Left = Vector3.Lerp(left, targetBridge.right, (float)i / stairCount);
             Vector3 stair_Right = Vector3.Lerp(right, targetBridge.left, (float)i / stairCount);
-            Transform stairStep = PoolManager.Instance.RequestObject("stair step", group);
+            Transform stairStep = PoolManager.Instance.NewObject("stair step", "steps", bridgeParent);
             stairStep.position = stair_Left + (stair_Right - stair_Left) / 2f;
             stairStep.right = (stair_Left - stair_Right).normalized;
             stairStep.localScale = new Vector3((stair_Left - stair_Right).magnitude, stairWidth, stairWidth);
         }
     }
 
-    public void Draw() {
-        Gizmos.color = built ? Color.red : Color.green;
-        if (built) {
-            Blocked(targetBridge, true);
-        }
 
+    public void Draw() {
+        Gizmos.color = GetTargetBridge() != null ? Color.magenta : Color.white;
         Gizmos.DrawLine(left, right);
-        Gizmos.DrawSphere(left, 0.1f);
-        Handles.Label(mid, $"{side}");
+        if (GetTargetBridge() != null) {
+            Gizmos.DrawLine(left, targetBridge.right);
+            Gizmos.DrawLine(right, targetBridge.left);
+        }
     }
 
     public Vector3 normal {

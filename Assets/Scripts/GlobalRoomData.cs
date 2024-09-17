@@ -18,9 +18,10 @@ public class GlobalRoomData : ScriptableObject {
 
     [Header("SIDES")]
     public float sideWidth = 5f;
+    public float sideTension = 0.5f;
 
     [Header("CASE")]
-    public float caseHeight;
+    public float sideHeight;
     public float caseDepth;
 
     [Header("SHELF")]
@@ -28,6 +29,8 @@ public class GlobalRoomData : ScriptableObject {
     public Vector2 shelf_padding;
     public Vector2 shelfMult;
 
+    [Header("PLATFORMS")]
+    public float platform_TowerChance = 0.7f;
 
     [Header("HULL")]
     public double hullConcavity;

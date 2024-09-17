@@ -12,19 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fdb2e21ae13ffcc48b623ea5075152d5, type: 3}
   m_Name: Global
   m_EditorClassIdentifier: 
-  seed: 0
-  levelCount: {x: 1, y: 10}
+  seed: 104
+  levelCount: {x: 3, y: 3}
   sideWidth: 5
-  caseHeight: 5
+  sideTension: 0.5
+  sideHeight: 10
   caseDepth: 1
   shelfHeight: 1
   shelf_padding: {x: 0.2, y: 0.2}
   shelfMult: {x: 0.5, y: 0.5}
+  platform_TowerChance: 0
   hullConcavity: 0.8
   hullScale: 30
-  hexCount: {x: 1, y: 10}
-  size: {x: 10, y: 150}
-  hexRadius: {x: 4, y: 15}
+  hexCount: {x: 2, y: 2}
+  size: {x: 20, y: 20}
+  hexRadius: {x: 10, y: 10}
   hexSideCount: {x: 3, y: 10}
   sizeMult_max: {x: 0, y: 0, z: 0}
   balconyDepth: 3
@@ -37,10 +39,10 @@ MonoBehaviour:
   angleToLadder: 70
   stairWidth: 0.4
   ladderWidth: 0.5
-  bridgeWidth: 1.2
+  bridgeWidth: 1.5
   bridgeHeight: 1
-  bridgeSideBuffer: 0.05
-  bridgeLenghtBuffer: 0.1
+  bridgeSideBuffer: -0.1
+  bridgeLenghtBuffer: 0.2
   bridgeUpDecal: 0.3
   decalBetweenBridges: 0.5
   platform_maxRadius: 8

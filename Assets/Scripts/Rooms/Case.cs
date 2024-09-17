@@ -11,8 +11,8 @@ public static class Case {
         // set main parameters of cases
         float depth = GlobalRoomData.Get.caseDepth;
         float width = side.BaseWidth;
-        float y = GlobalRoomData.Get.caseHeight / 2f;
-        float height = GlobalRoomData.Get.caseHeight;
+        float y = GlobalRoomData.Get.sideHeight / 2f;
+        float height = GlobalRoomData.Get.sideHeight;
         float x = (width / 2);
         Vector3 pos = side.GetBasePoint(0) + side.BaseDirection * x + Vector3.up * y - side.Normal * depth / 2f;
 
@@ -40,7 +40,7 @@ public static class Case {
                         tPos.y += (global.doorScale.y / 2f);
 
                         // next room trigger
-                        var nextRoomTrigger = PoolManager.Instance.RequestObject("next room trigger");
+                        var nextRoomTrigger = PoolManager.Instance.NewObject("next room trigger", "room triggers");
                         nextRoomTrigger.position = pos - Vector3.up * (global.doorScale.y) ;
                         nextRoomTrigger.localScale = new Vector3(tW, global.doorScale.y, depth);
                         nextRoomTrigger.right = -side.BaseDirection;
@@ -59,7 +59,7 @@ public static class Case {
     }
 
     public static Transform NewCase(Vector3 pos, Vector3 dir, Vector3 scale, int shelfCount = 1) {
-        Transform _case = PoolManager.Instance.RequestObject("case");
+        Transform _case = PoolManager.Instance.NewObject("wall", "walls");
         _case.right = dir;
         _case.position = pos;
         _case.localScale = scale;
@@ -91,7 +91,7 @@ public static class Case {
                     break;
 
                 // request from pool
-                Transform shelf = PoolManager.Instance.RequestObject("shelf");
+                Transform shelf = PoolManager.Instance.NewObject("shelf", "shelves");
                 // apply scale
                 shelf.localScale = new Vector3(shelfWidth, global.shelfHeight, 0.05f);
 
@@ -126,7 +126,7 @@ public static class Case {
             // pos
             float bY = -global.shelfHeight / 2 + bookHeight / 2;
 
-            Transform book = PoolManager.Instance.RequestObject("book");
+            Transform book = PoolManager.Instance.NewObject("book", "Books");
 
             float bookWidth = GlobalRoomData.Get.bookWidth;
 
@@ -155,8 +155,8 @@ public static class Case {
         }
     }
 
-    public static void NewBalcony(RoomData data, Side side) {
-        Transform balcony = PoolManager.Instance.RequestObject("balcony");
+    public static void NewBalcony(Side side) {
+        Transform balcony = PoolManager.Instance.NewObject("floor", "Balconies");
         float balconyHeight = GlobalRoomData.Get.balconyHeight;
 
         // mesh
@@ -174,23 +174,11 @@ public static class Case {
         };
         MeshControl.Update(meshFilter, vertices);
 
-        // RAMPS AND BRIDGES
-        float rWidth = GlobalRoomData.Get.rampWidth;
-
-        int l = data.sides[0].Length;
-
-        // side ramps
-        for (int i = 0; i < 2; ++i) {
-            float sideRampHeight = 1.3f;
-
-            Transform sideRamp = PoolManager.Instance.RequestObject("ramp");
-            Vector3 rDir = side.GetBalconyPoint(i) - side.GetBasePoint(i);
-            sideRamp.forward = rDir;
-            sideRamp.position = side.GetBalconyPoint(i);
-            sideRamp.localScale = new Vector3(rWidth, sideRampHeight, rWidth);
-        }
-
         
+    }
+
+    public static void UpdateBalcony() {
+
     }
 
 
@@ -200,7 +188,7 @@ public static class Case {
 
 
 
-        Transform ramp = PoolManager.Instance.RequestObject("ramp");
+        Transform ramp = PoolManager.Instance.NewObject("pole", "Ramps");
 
         Vector3 dir = end - origin;
         ramp.position = origin + dir / 2f + Vector3.up * rHeight;
@@ -208,7 +196,7 @@ public static class Case {
         ramp.localScale = new Vector3(rWidth, rWidth, dir.magnitude);
         NewPosts(origin, end, tmpParent);
 
-        Transform rampCollider = PoolManager.Instance.RequestObject("ramp collider");
+        Transform rampCollider = PoolManager.Instance.NewObject("wallCollider", "Colliders");
         rampCollider.position = origin + dir / 2f;
         rampCollider.LookAt(end , Vector3.up);
         rampCollider.localScale = new Vector3(rWidth, rHeight, dir.magnitude);
@@ -227,7 +215,7 @@ public static class Case {
         Vector3 dir = p2 - p1;
         int c = (int)(dir.magnitude * 2);
         for (int k = 0; k < (c + 1); k++) {
-            Transform tr = PoolManager.Instance.RequestObject("ramp");
+            Transform tr = PoolManager.Instance.NewObject("pole", "Posts");
             float lerp = (float)k / c;
             Vector3 p;
             if (k == c)
